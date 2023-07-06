@@ -11,7 +11,7 @@ class Administration(commands.Cog):
     
     @commands.hybrid_command(name='slowmode', aliases=['sm','slow'])
     @commands.check_any(commands.has_permissions(manage_channels=True),is_developer())
-    async def slowmode(self, ctx: commands.Context, delay:int) -> None:
+    async def slowmode(self, ctx:commands.Context, delay:int) -> None:
         """self explanatory"""
 
         # if not channel.permissions_for(author).manage_channels:
@@ -28,7 +28,7 @@ class Administration(commands.Cog):
     
     @commands.command() # does not exit gracefully as app_command
     @commands.check_any(commands.has_permissions(manage_channels=True),is_developer())
-    async def purge(self, ctx: commands.Context, num:int) -> None:
+    async def purge(self, ctx:commands.Context, num:int) -> None:
         """delete number of previous messages"""
         footer = bcfg['footer']
 
@@ -43,7 +43,6 @@ class Administration(commands.Cog):
                 delete_after=3.0
             )
 
-        
 
 async def setup(bot) -> None:
     await bot.add_cog(Administration(bot))
