@@ -39,7 +39,8 @@ class user:
             cls.s.commit()
         elif type(stat) is tuple:
             if len(stat) != len(value): raise ValueError('stat and variable are of different length')
-            cls.c.execute(f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value > 0 else " - ") + str(value[x]) for x in range(0,len(stat)-1))} where id = {userid}')
+            command = f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value[x] > 0 else " - ") + str(value[x]) for x in range(0,len(stat)))} where id = {userid}'
+            cls.c.execute(command)
             cls.s.commit()
 
     @classmethod
