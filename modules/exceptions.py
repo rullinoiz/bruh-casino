@@ -1,4 +1,3 @@
-from typing import Any, Optional
 from discord.ext.commands import CommandError, Command
 
 class AccessDenied(CommandError):
@@ -17,7 +16,7 @@ class ArgumentError(CommandError):
                 'str':'string',
                 'Money':'number'
             }
-            return t if not t in types.keys() else types[t]
+            return t if t not in types.keys() else types[t]
         super().__init__(f'Usage: `{cmd.name} ' + ' '.join([f'[{totype(k.annotation.__name__)}: {v}]' for v, k in cmd.clean_params.items()]) + '`')
 
 class ArgumentValueError(CommandError):
@@ -56,3 +55,8 @@ class Uhhhhhh(CommandError):
         self.codestyle = codestyle
         super().__init__(msg)
 
+class TooMuchData(CommandError):
+    def __init__(self, msg:str='Command received too much data, could not continue!', codestyle:bool=False) -> None:
+        self.msg = msg
+        self.codestyle = codestyle
+        super().__init__(msg)
