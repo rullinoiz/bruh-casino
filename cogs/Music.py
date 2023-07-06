@@ -19,7 +19,7 @@ import httpx
 from modules.checks import is_developer
 from bot_config import bot_config as bcfg
 
-discord.opus.load_opus(name=('/opt/homebrew/Cellar/opus/1.3.1/lib/libopus.dylib' if os.uname().sysname == 'Darwin' else '/usr/lib/aarch64-linux-gnu/libopus.so.0')) 
+discord.opus.load_opus(name=('/opt/homebrew/Cellar/opus/1.4/lib/libopus.dylib' if os.uname().sysname == 'Darwin' else '/usr/lib/aarch64-linux-gnu/libopus.so.0'))
 
 # Silence useless bug reports messages
 youtube_dl.utils.bug_reports_message = lambda: ''
