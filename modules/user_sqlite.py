@@ -1,7 +1,7 @@
 import sqlite3 as sq
 #from bot_config import bot_config
 from discord import Member
-from typing import Union,Any
+from typing import Union,Any,Iterable
 
 class user:
     s = sq.connect(r'user.db')
@@ -31,7 +31,7 @@ class user:
         return cls.c.execute(f'select {stat} from user where id = ?;',(userid,)).fetchone()[0]
 
     @classmethod
-    def add(cls, userid:Union[int, Member], stat:Union[str, tuple[str]], value:Union[int, tuple[int]]) -> None:
+    def add(cls, userid:Union[int, Member], stat:Union[str, Iterable[str]], value:Union[int, Iterable[int]]) -> None:
         userid:int = userid if type(userid) != Member else userid.id
         t = cls.ensure_existence(userid, True)
         if type(stat) is str:
