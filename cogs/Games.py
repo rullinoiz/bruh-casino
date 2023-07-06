@@ -15,7 +15,6 @@ from random import randint as random
 class Games(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
-        #super().__init__(**kwargs)
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -111,7 +110,7 @@ class Games(commands.Cog):
                     text=footer
                 )
             )
-            user.add(author.id,"money",-bet)
+            user.subtract(author.id,"money",bet)
             user.add(author.id,"moneylost",bet)
             user.add(author.id,"loss",1)
             return
@@ -665,8 +664,6 @@ class Games(commands.Cog):
             user.s.commit()
             await mtoedit.edit(embed=embed,view=None)
             return
-        
-
 
 async def setup(bot) -> None:
     await bot.add_cog(Games(bot))

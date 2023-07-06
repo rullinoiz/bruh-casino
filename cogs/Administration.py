@@ -46,3 +46,4 @@ class Administration(commands.Cog):
 
 async def setup(bot) -> None:
     await bot.add_cog(Administration(bot))
+    print('Administration loaded')

@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 import discord
 from discord.ext import commands,tasks
-import modules.cards as cards
 import time
-import hashlib as hsh
 from itertools import combinations,cycle
-from collections import defaultdict
 from os import system as sys
 from random import randint as random
 from random import seed
@@ -13,9 +10,8 @@ from discord.utils import get as dget
 import bot_config
 from modules.server import server
 from modules.user_sqlite import user
-from modules.exceptions import AccessDenied, ArgumentError, MultipleInstanceError
+from modules.exceptions import ArgumentError, MultipleInstanceError
 from modules.checks import is_developer
-import sqlite3 as sq
 import os
 import logging
 import inspect
@@ -142,18 +138,18 @@ async def on_message(message) -> None:
                             title = "Level Up!",
                             description = server.read(channel.guild.id,"levelmsg").replace("{user}","<@{0}>".format(author.id)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
                             color=discord.Color.green(),
-                        ).set_footer(text=footer)
+                        ).set_footer(text=footer),
+                        delete_after=10
                     )
 
-@client.command()
+@client.command(name='exec')
 @is_developer()
-async def exec(ctx, *, script:str) -> None:
+async def _exec(ctx, *, script:str) -> None:
     """literally a backdoor"""
 
     author = ctx.author
     channel = ctx.channel
     message = ctx.message
-    command = ctx.invoked_with
 
     #if not author.id == bcfg['le_admin']:
     #    raise AccessDenied(command)
@@ -171,38 +167,9 @@ async def load_extensions() -> None:
         if filename.endswith('.py'):
             await client.load_extension(f'cogs.{filename[:-3]}')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 async def main():
     async with client:
         print('BRUHBOT CONNECTING...')
         await load_extensions()
-        await client.start('NjkxNDY1MjQ0MzU4MjEzNjUy.G6KFSB.haIkfQEEdXd0ql1odJ6Luv6R2aHrdWbYudgdX8')
+        await client.start(os.environ['BOT_TOKEN'])
 asyncio.run(main())

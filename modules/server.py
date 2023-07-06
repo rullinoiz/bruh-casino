@@ -2,7 +2,9 @@ import json as j
 from bot_config import bot_config
 
 class server:
-    def write(id:int,stat:str,content) -> None:
+
+    @classmethod
+    def write(cls, id:int, stat:str, content) -> None:
         """
         Parameters
         ----------
@@ -25,12 +27,13 @@ class server:
             data[str(id)] = bot_config['default_template_server']
         elif str(id) in data:
             data[str(id)][stat] = content
-        
+
         temp = open(bot_config['serverpath'],"w")
         temp.write(str(j.dumps(data)))
         temp.close()
 
-    def read(id:int,stat:str):
+    @classmethod
+    def read(cls, id:int, stat:str):
         """
         Parameters
         ----------
@@ -54,8 +57,8 @@ class server:
             temp.write(str(j.dumps(data)))
             temp.close()
         elif str(id) in data:
-            if not stat in data[str(id)]:
-                if not stat in bot_config['default_template_server']:
+            if stat not in data[str(id)]:
+                if stat not in bot_config['default_template_server']:
                     data[str(id)][stat] = 0
                     temp = open(bot_config['serverpath'],"w")
                     temp.write(str(j.dumps(data)))
@@ -65,10 +68,11 @@ class server:
                     temp = open(bot_config['serverpath'],"w")
                     temp.write(str(j.dumps(data)))
                     temp.close()
-                    
+
         return data[str(id)][stat]
 
-    def add(id:int,stat:str,value:int) -> None:
+    @classmethod
+    def add(cls, id:int, stat:str, value:int) -> None:
         """
         Parameters
         ----------

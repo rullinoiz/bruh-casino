@@ -5,7 +5,7 @@ import typing
 import inspect
 import os
 
-from modules.user_sqlite import user
+from modules.user_sqlite import user as user_
 from modules.server import server
 from modules.checks import is_developer
 
@@ -19,12 +19,10 @@ class Debugging(commands.Cog):
 
     @commands.hybrid_command()
     @is_developer()
-    async def exit(self, ctx: commands.Context) -> None:
+    async def exit(self, ctx:commands.Context) -> None:
         """kill bot"""
-        
         print("someone invoked {0}".format(ctx.invoked_with))
-        
-        await ctx.send(content="adios")
+        await ctx.send("adios")
         await self.bot.close()
     
     @commands.hybrid_command(name='setmoney')
@@ -33,7 +31,7 @@ class Debugging(commands.Cog):
         """conterfeit money"""
         footer = bcfg['footer']
 
-        user.write(str(user.id),"money",money)
+        user_.write(str(user.id),"money",money)
         await ctx.send(embed=discord.Embed(
                 title="Success",
                 description="Money for user <@{0}> has been successfully set to {1}.".format(str(user.id),money),
@@ -43,7 +41,7 @@ class Debugging(commands.Cog):
 
     @commands.hybrid_command(name='reload')
     @is_developer()
-    async def reload(self, ctx, cog:str) -> None:
+    async def reload(self, ctx:commands.Context, cog:str) -> None:
         """reloads a command module"""
         message = ctx.message
         prg = f'self.bot.reload_extension(\'{cog}\')'
@@ -57,7 +55,7 @@ class Debugging(commands.Cog):
         return
 
     @reload.autocomplete('cog')
-    async def reload_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    async def reload_autocomplete(self, ctx:discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
         data = []
         for filename in os.listdir('cogs'):
             if filename.endswith('.py'):
@@ -69,23 +67,23 @@ class Debugging(commands.Cog):
     #     await ctx.send(type(arg).__name__)
 
     @commands.hybrid_command(name='status')
-    async def status(self, ctx) -> None:
-        ip = subp.run(['ip','addr','show','eth0'],stdout=subp.PIPE,text=True).stdout
-        free = subp.run(['free'],stdout=subp.PIPE,text=True).stdout
+    async def status(self, ctx:commands.Context) -> None:
+        ip = subp.run(['ip','addr','show','eth0'], stdout=subp.PIPE, text=True).stdout
+        free = subp.run(['free'], stdout=subp.PIPE, text=True).stdout
 
         await ctx.send(f'result of `ip addr show eth0`:```{ip}```result of `free`:```{free}```')
 
     @commands.hybrid_command(name='sql')
     @is_developer('do that shit')
-    async def sql(self, ctx, *, prg:str) -> None:
+    async def sql(self, ctx:commands.Context, *, prg:str) -> None:
         """we do a little sql injection"""
 
         print(f'{prg} {type(prg)}')
         try:
-            result = user.c.execute(str(prg))
+            result = user_.c.execute(str(prg))
             result = result.fetchall()
-            if result == []:
-                user.s.commit()           
+            if not result:
+                user_.s.commit()
                 return await (ctx.message.add_reaction if not ctx.interaction else ctx.send)('✅')
             await ctx.send(result)
         except Exception as e:
@@ -97,7 +95,7 @@ class Debugging(commands.Cog):
             )
     
     @commands.hybrid_command(name='refresh')
-    async def refresh(self, ctx) -> None:
+    async def refresh(self, ctx: commands.Context) -> None:
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
 
