@@ -6,3 +6,4 @@ serverdata.txt
 **/__pycache__/
 *.swp
 **/'
+.idea/
