@@ -53,7 +53,7 @@ class Fun(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, msg: discord.Message) -> None:
-        if msg.author == self.bot or msg.is_system(): return
+        if msg.author == self.bot.user or msg.is_system() or msg.author.bot: return
         self.set_sniped(msg)
         if server.read(msg.guild.id, 'i_saw_what_you_deleted'):
             await msg.channel.send('https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007')
