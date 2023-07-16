@@ -23,11 +23,15 @@ bot_config = {
             "type": "bool",
         },
         "speech_bubble": {
-            "desc": "Set whether the bot randomly sends a speech bubble gif to destroy an argument",
+            "desc": "Set whether the bot randomly (1% chance) sends a speech bubble gif to destroy an argument",
             "type": "bool",
         },
         "lingering_levelup": {
             "desc": "Set whether levelup messages are deleted after some time",
+            "type": "bool",
+        },
+        "i_saw_what_you_deleted": {
+            "desc": "Set whether to post 'i saw what you deleted' gif when a user deletes a message",
             "type": "bool",
         },
     },
@@ -50,6 +54,7 @@ bot_config = {
         "bruhreact": False,
         "speech_bubble": True,
         "lingering_levelup": True,
+        "i_saw_what_you_deleted": True,
     },
     "le_admin":441422344851030046
 

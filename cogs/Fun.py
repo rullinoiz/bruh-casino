@@ -6,6 +6,8 @@ import random
 from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 
+from modules.server import server
+
 random.seed(time.time_ns())
 
 bubble_gifs: list[str] = [
@@ -51,13 +53,16 @@ class Fun(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, msg: discord.Message) -> None:
+        if msg.author == self.bot or msg.is_system(): return
         self.set_sniped(msg)
+        if server.read(msg.guild.id, 'i_saw_what_you_deleted'):
+            await msg.channel.send('https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007')
 
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message) -> None:
         if msg.author == self.bot.user or msg.is_system() or bcfg['prefix'] in msg.content:
             return
-        if random.randint(1,100) == 69:
+        if server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69:
             await msg.channel.send(content=random.choice(bubble_gifs))
             print('trolled')
         else:
