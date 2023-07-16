@@ -10,14 +10,18 @@ class ArgumentError(CommandError):
     def __init__(self, cmd:Command, codestyle:bool=False) -> None:
         self.command = cmd
         self.codestyle = codestyle
-        def totype(t:str) -> str:
-            types = {
-                'int':'number',
-                'str':'string',
-                'Money':'number'
-            }
-            return t if t not in types.keys() else types[t]
-        super().__init__(f'Usage: `{cmd.name} ' + ' '.join([f'[{totype(k.annotation.__name__)}: {v}]' for v, k in cmd.clean_params.items()]) + '`')
+
+        super().__init__(f'Usage: `{cmd.name} ' + ' '.join([f'[{self.totype(k.annotation.__name__)}: {v}]' for v, k in cmd.clean_params.items()]) + '`')
+
+    @staticmethod
+    def totype(t: str) -> str:
+        types = {
+            'int': 'number',
+            'str': 'string',
+            'Money': 'number',
+            'MoneyEven': 'even number'
+        }
+        return t if t not in types.keys() else types[t]
 
 class ArgumentValueError(CommandError):
     def __init__(self, msg:str='Invalid value for argument') -> None:
@@ -60,3 +64,9 @@ class TooMuchData(CommandError):
         self.msg = msg
         self.codestyle = codestyle
         super().__init__(msg)
+
+class CommandTimeoutError(CommandError):
+    def __init__(self, time:int=20, codestyle:bool=False) -> None:
+        self.time = time
+        self.codestyle = codestyle
+        super().__init__(f'Sorry, you failed to respond in {time} seconds so I gave up')
