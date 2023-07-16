@@ -168,7 +168,7 @@ class Games(commands.Cog):
 
                 elif msg.data['custom_id'] == bt[2].custom_id:  # double
                     stats.subtract('money', bet)
-                    playerhand.add(deck.draw())
+                    playerhand.append(deck.draw())
                     playerhand.doubled = True
                     stay = True
 
