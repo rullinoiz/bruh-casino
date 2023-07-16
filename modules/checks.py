@@ -7,7 +7,7 @@ from typing import *
 def is_developer(action:str=None):
     def predicate(ctx:Context) -> bool:
         if not ctx.author.id == 441422344851030046:
-            raise e.AccessDenied(ctx.invoked_with if not action else action)
+            raise e.AccessDenied(action or ctx.invoked_with)
         return True
     return check(predicate)
 
@@ -22,6 +22,13 @@ class Money(Converter):
     async def convert(self, ctx:Context, arg:int) -> int:
         if user.read(ctx.author.id, 'money') < int(arg):
             raise e.BrokeError(int(arg), user.read(ctx.author.id, 'money'))
-        elif int(arg) < 0:
+        elif int(arg) <= 0:
             raise e.Uhhhhhh()
         return int(arg)
+
+class MoneyEven(Money):
+    async def convert(self, ctx:Context, arg:int) -> int:
+        if super.convert(ctx, arg) and (arg % 2 == 0):
+            return arg
+        else:
+            raise e.ArgumentValueError(f'Argument for Money must be even! (received odd number {arg})')
