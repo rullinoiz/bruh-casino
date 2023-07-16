@@ -146,7 +146,7 @@ class Games(commands.Cog):
                         value="{0} {1}".format("?", dealerhand[1])
                     ).add_field(
                         name="You ({0})".format(playerhand.toVal()),
-                        value=listHands(player)
+                        value=listHands(player, i)
                     ),
                     view=buttons
                 )
@@ -157,10 +157,10 @@ class Games(commands.Cog):
                 except asyncio.TimeoutError:
                     raise e.CommandTimeoutError()
 
-                bt[2].disabled = True
                 # TODO: Refactor for 3.11 (when it comes out)
                 if msg.data['custom_id'] == bt[0].custom_id:  # hit
                     bt[3].disabled = True
+                    bt[2].disabled = True
                     playerhand.append(deck.draw())
                 
                 elif msg.data['custom_id'] == bt[1].custom_id:  # stay
@@ -177,6 +177,7 @@ class Games(commands.Cog):
                     player.insert(i+1, cards.BlackjackHand(playerhand.draw()))
                     playerhand.add(deck.draw())
                     player[i+1].add(deck.draw())
+                    bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money')
 
         embed = mtoedit.embeds[0]
 
@@ -220,14 +221,14 @@ class Games(commands.Cog):
                 gameWorth += bet*2 if d.doubled else bet
                 continue
             elif int(d) > int(dealerhand) or dealerhand.busted:
-                toSend.append(f'🟩{str(d)}')
+                toSend.append(f'{"🟩" if len(player) > 1 else ""}{str(d)}')
                 gameWorth += bet*2 if d.doubled else bet
                 moneyWon += bet*4 if d.doubled or d.is_blackjack() else bet*2
             elif int(d) < int(dealerhand):
-                toSend.append(f'🟥{str(d)}')
+                toSend.append(f'{"🟥" if len(player) > 1 else ""}{str(d)}')
                 gameWorth += bet*2 if d.doubled else bet
             elif int(d) == int(dealerhand):
-                toSend.append(f'🟨{str(d)}')
+                toSend.append(f'{"🟨" if len(player) > 1 else ""}{str(d)}')
                 gameWorth += bet*2 if d.doubled else bet
                 moneyWon += bet*2 if d.doubled else bet
 
@@ -248,7 +249,7 @@ class Games(commands.Cog):
                 value=str(dealerhand)
             ).add_field(
                 name="You ({0})".format(', '.join([str(x.toVal()) for x in player])),
-                value=listHands(player)
+                value='\n'.join(toSend)
             ),
             view=None
         )
