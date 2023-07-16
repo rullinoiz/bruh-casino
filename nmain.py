@@ -69,6 +69,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
         e = e.original
         if type(e) in [commands.CommandInvokeError, commands.HybridCommandError, discord.app_commands.CommandInvokeError]:
             e = e.original
+        print(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
     elif f == commands.MaxConcurrencyReached:
         e = MultipleInstanceError(ctx.command)
 
@@ -81,7 +82,6 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
             color=discord.Color.red()
         ).set_footer(text=footer)
     )
-    print(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
 
 @client.event
 async def on_message(message) -> None:
