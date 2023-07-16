@@ -21,7 +21,6 @@ class Games(commands.Cog):
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    @checks.under_construction()
     async def blackjack(self, ctx:commands.Context, bet:checks.Money) -> None:
         """blackjack gaming"""
         bot = self.bot
@@ -109,7 +108,7 @@ class Games(commands.Cog):
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
-        mtoedit = await ctx.send(embed=discord.Embed(
+        mtoedit: discord.Message = await ctx.send(embed=discord.Embed(
                 title="Blackjack",
                 description="Click \"Hit\", \"Stand\", \"Double Down\", or \"Split\" within 20 seconds.",
                 color=discord.Color.orange()
@@ -130,7 +129,7 @@ class Games(commands.Cog):
         def listHands(hands:list[cards.BlackjackHand],current:int=None) -> str:
             val: list[str] = []
             for i,v in enumerate(hands, start=0):
-                val.append('{0}{1}{0}'.format('***' if i == current and len(hands) != 1 else ('~~' if v.busted else ''), str(v)))
+                val.append('{0}{1}{0}'.format('__' if i == current and len(hands) != 1 else ('~~' if v.busted else ''), str(v)))
             return '\n'.join(val)
 
         for i, playerhand in enumerate(player,start=0):
