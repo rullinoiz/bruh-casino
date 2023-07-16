@@ -15,6 +15,7 @@ from modules.checks import is_developer
 import os
 import logging
 import inspect
+import traceback
 
 import asyncio
 
@@ -61,6 +62,7 @@ async def on_ready() -> None:
 @client.event
 async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> None:
     f = type(e)
+    # TODO: Refactor for 3.11 (when it comes out)
     if f == commands.MissingRequiredArgument:
         e = ArgumentError(ctx.command)
     elif f in [commands.CommandInvokeError, commands.HybridCommandError, discord.app_commands.CommandInvokeError]:
@@ -79,6 +81,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
             color=discord.Color.red()
         ).set_footer(text=footer)
     )
+    print(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
 
 @client.event
 async def on_message(message) -> None:
@@ -88,22 +91,18 @@ async def on_message(message) -> None:
     if message.mention_everyone or client.user.mentioned_in(message):
         try:
             await message.add_reaction(discord.utils.get(message.guild.emojis,name="ping"))
-        except:
+        except discord.NotFound:
             print("ping emoji not found")
         print("pinged lmao")
 
     if not message.content.startswith(prefix) and "bruh" in message.content.lower():
-        if server.read(message.guild.id,"bruhreact") == True:
+        if server.read(message.guild.id,"bruhreact"):
             await message.add_reaction("🇧")
             await message.add_reaction("🇷")
             await message.add_reaction("🇺")
             await message.add_reaction("🇭")
 
-        x = 0
-
-        for i in message.content.split(" "):
-            if "bruh" in i.lower():
-                x += 1
+        x = message.content.count('bruh')
 
         user.add(message.author.id,"bruh",x)
         print("bruh")
@@ -135,11 +134,11 @@ async def on_message(message) -> None:
                     print("level up")
                     await channel.send(
                         embed=discord.Embed(
-                            title = "Level Up!",
-                            description = server.read(channel.guild.id,"levelmsg").replace("{user}","<@{0}>".format(author.id)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
+                            title="Level Up!",
+                            description=server.read(channel.guild.id,"levelmsg").replace("{user}","<@{0}>".format(author.id)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
                             color=discord.Color.green(),
                         ).set_footer(text=footer),
-                        delete_after=10
+                        delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
                     )
 
 @client.command(name='exec')
