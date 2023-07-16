@@ -20,7 +20,15 @@ bot_config = {
         "bruhreact": {
             "desc": "Set whether the bot reacts to any message with the word \"bruh\" in it. Best left off.",
             "type": "bool",
-        }
+        },
+        "speech_bubble": {
+            "desc": "Set whether the bot randomly sends a speech bubble gif to destroy an argument",
+            "type": "bool",
+        },
+        "lingering_levelup": {
+            "desc": "Set whether levelup messages are deleted after some time",
+            "type": "bool",
+        },
     },
     "default_template":{
         "money": 1000,
@@ -39,6 +47,8 @@ bot_config = {
     "default_template_server":{
         "levelmsg": "funny man {user} just got to level {level}",
         "bruhreact": False,
+        "speech_bubble": True,
+        "lingering_levelup": True,
     },
     "le_admin":441422344851030046
 
