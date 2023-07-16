@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ui import Button,View
 import modules.cards as cards
-from modules.user_sqlite import user
+from modules.user_sqlite import user, user_instance
 from bot_config import bot_config as bcfg
 
 import modules.checks as checks
@@ -16,122 +16,96 @@ class Games(commands.Cog):
     def __init__(self, bot:commands.Bot) -> None:
         self.bot = bot
 
+    async def cog_before_invoke(self, ctx:commands.Context) -> None:
+        ctx.stats: user_instance = user_instance(ctx)
+
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     @checks.under_construction()
     async def blackjack(self, ctx:commands.Context, bet:checks.Money) -> None:
         """blackjack gaming"""
-
         bot = self.bot
 
-        author = ctx.author
+        author: discord.Member = ctx.author
+        stats: user_instance = ctx.stats
 
         footer = bcfg['footer']
 
-        deck = cards.Deck(decks=2)
+        deck: cards.Deck = cards.Deck(decks=2)
         deck.shuffle()
-
-        def cardsToVal(e: list[cards.Card]) -> typing.Union[str, int]:
-            t = 0
-            t2 = 0
-            a = False
-            for i in e:
-                if i.value.bj_face_value == 11:
-                    if not t + 11 > 21:
-                        t += 11
-                    else:
-                        t += 1
-                    t2 += 1
-                    a = True
-                else:
-                    t += i.value.bj_face_value
-                    t2 += i.value.bj_face_value
-
-            if t > 21:
-                t = t2
-            elif t == t2:
-                pass
-            elif a:
-                t = "{0}/{1}".format(t,t2)
-
-            return t
-
-        def aceToInt(e) -> int:
-            return int(str(e).split("/")[0])
         
-        def cardsToStr(e: typing.Union[list[cards.Card], list[list[cards.Card]]], current:int=0) -> str:
-            # t = ""
-            # for i in e:
-            #     t += i[0] + " "
-            
-            if type(e) == list[cards.Card]:
-                return ' '.join([str(i) for i in e])
-            else:
-                val = []
-                for i,v in enumerate(e,start=1):
-                    val.append(' '.join([('__{0}__' if i == current else ('{0}' if aceToInt(cardsToVal(v)) <= 21 else '~~{0}~~')).format(str(x)) for x in v]))
+        # def cardsToStr(e: list[cards.Card], current:int=0) -> str:
+        #     # t = ""
+        #     # for i in e:
+        #     #     t += i[0] + " "
+        #
+        #     if type(e) == list[cards.Card]:
+        #         return ' '.join([str(i) for i in e])
+        #     else:
+        #         val = []
+        #         for i,v in enumerate(e,start=1):
+        #             val.append(' '.join([('__{0}__' if i == current else ('{0}' if aceToInt(cardsToVal(v)) <= 21 else '~~{0}~~')).format(str(x)) for x in v]))
+        #
+        #         return '\n'.join(val)
 
-                return '\n'.join(val)
+        stats.subtract('money', bet)
 
-        dealerhand = deck.draw(2)
-        player = deck.draw(2)
+        dealerhand: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
+        player: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
 
-        if aceToInt(cardsToVal(player)) == 21 and not aceToInt(cardsToVal(dealerhand)) == 21:
+        if player.is_blackjack() and not dealerhand.is_blackjack():
             await ctx.send(embed=discord.Embed(
                     title="Blackjack",
                     description="You have blackjack! You won {0} money.".format(bet*2),
                     color=discord.Color.green()
                 ).add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
+                    name="Dealer ({0})".format(int(dealerhand)),
+                    value=str(dealerhand)
                 ).add_field(
                     name="You ({0})".format(21),
-                    value=cardsToStr(player)
+                    value=str(player)
                 ).set_footer(
                     text=footer
                 )
             )
-            user.add(author.id,"money",bet*2)
-            user.add(author.id,"moneygained",bet*2)
-            user.add(author.id,"wins",1)
+            stats.add(('money','moneygained','wins'),(bet*3,bet*2,1))
             return
-        elif aceToInt(cardsToVal(dealerhand)) == 21:
+        elif dealerhand.is_blackjack() and not player.is_blackjack():
             await ctx.send(embed=discord.Embed(
                     title="Blackjack",
                     description="Dealer has blackjack! You lost {0} money.".format(bet),
                     color=discord.Color.red()
                 ).add_field(
                     name="Dealer ({0})".format(21),
-                    value=cardsToStr(dealerhand)
+                    value=str(dealerhand)
                 ).add_field(
-                    name="You ({0})".format(cardsToVal(player)),
-                    value=cardsToStr(player)
+                    name="You ({0})".format(player.toVal()),
+                    value=str(player)
                 ).set_footer(
                     text=footer
                 )
             )
-            user.subtract(author.id,"money",bet)
-            user.add(author.id,"moneylost",bet)
-            user.add(author.id,"loss",1)
+            stats.add(('moneylost','loss'),(bet,1))
             return
-        elif aceToInt(cardsToVal(player)) == 21 and aceToInt(cardsToVal(dealerhand)) == 21:
+        elif player.is_blackjack() and dealerhand.is_blackjack():
             await ctx.send(embed=discord.Embed(
                     title="Blackjack",
                     description="It's a tie! No one wins.",
                     color=discord.Color.red()
                 ).add_field(
                     name="Dealer ({0})".format(21),
-                    value=cardsToStr(dealerhand)
+                    value=str(dealerhand)
                 ).add_field(
                     name="You ({0})".format(21),
-                    value=cardsToStr(player)
+                    value=str(player)
                 ).set_footer(
                     text=footer
                 )
             )
+            stats.add('money', bet)
             return
         
-        bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label='Double Down',disabled=False),Button(label='Split',disabled=player[0].value.bj_face_value!=player[1].value.bj_face_value)]
+        bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label=f'Double Down (${bet})',disabled=False),Button(label=f'Split (${bet})',disabled=player[0].value!=player[1].value)]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
@@ -143,169 +117,145 @@ class Games(commands.Cog):
                 name="Dealer (?)",
                 value="{0} {1}".format("?",dealerhand[1])
             ).add_field(
-                name="You ({0})".format(cardsToVal(player)),
-                value=cardsToStr(player)
+                name="You ({0})".format(player.toVal()),
+                value=str(player)
             ).set_footer(
                 text=footer
             ),
             view=buttons
         )
 
-        msg = ""
-        stay = False
+        player: list[cards.BlackjackHand] = [player]
 
-        player = [player]
+        def listHands(hands:list[cards.BlackjackHand],current:int=None) -> str:
+            val: list[str] = []
+            for i,v in enumerate(hands, start=0):
+                val.append('{0}{1}{0}'.format('***' if i == current and len(hands) != 1 else ('~~' if v.busted else ''), str(v)))
+            return '\n'.join(val)
 
         for i, playerhand in enumerate(player,start=0):
-            while not stay:
+            stay: bool = False
+            bt[2].disabled = stats.read('money') < bet
+            bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money') > bet
+            while not (stay or playerhand.busted or playerhand.is_blackjack()):
+                embed = mtoedit.embeds[0]
+                buttons.clear_items()
+                for x in bt: buttons.add_item(x)
+                await mtoedit.edit(embed=embed.clear_fields()
+                    .add_field(
+                        name="Dealer (?)",
+                        value="{0} {1}".format("?", dealerhand[1])
+                    ).add_field(
+                        name="You ({0})".format(playerhand.toVal()),
+                        value=listHands(player)
+                    ),
+                    view=buttons
+                )
+
                 try:
                     msg = await bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                     await msg.response.defer()
                 except asyncio.TimeoutError:
-                    await mtoedit.edit(embed=discord.Embed(title="TimeoutError",description="Sorry, you failed to respond in under 20 seconds so I gave up",color=discord.Color.red()).set_footer(text=footer),view=None)
-                    print("timeouterror: dude failed to respond under the time limit")
-                    return
+                    raise e.CommandTimeoutError()
 
-                if msg.data['custom_id'] == bt[0].custom_id:
-                    #await msg.delete()
+                bt[2].disabled = True
+                # TODO: Refactor for 3.11 (when it comes out)
+                if msg.data['custom_id'] == bt[0].custom_id:  # hit
+                    bt[3].disabled = True
                     playerhand.append(deck.draw())
-                    embed = mtoedit.embeds[0]
-                    if type(cardsToVal(playerhand)) != str:
-                        if cardsToVal(playerhand) > 21:
-                            embed.description = "Bust! You lost {0} money.".format(bet)
-                            embed.color = discord.Color.red()
-                            await mtoedit.edit(embed=embed.clear_fields()
-                                .add_field(
-                                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                                    value=cardsToStr(dealerhand)
-                                ).add_field(
-                                    name="You ({0})".format(cardsToVal(playerhand)),
-                                    value=cardsToStr(playerhand)
-                                ),
-                                view=None,
-                            )
-                            user.add(author.id,"money",-bet)
-                            user.add(author.id,"moneylost",bet)
-                            user.add(author.id,"loss",1)
-                            return
-
-
-                    await mtoedit.edit(embed=embed.clear_fields()
-                        .add_field(
-                            name="Dealer (?)",
-                            value="{0} {1}".format("?",dealerhand[1])
-                        ).add_field(
-                            name="You ({0})".format(cardsToVal(playerhand)),
-                            value=cardsToStr(playerhand)
-                        ),
-                        view=buttons
-                    )
                 
-                elif msg.data['custom_id'] == bt[1].custom_id:
-                    #await button_message.delete()
+                elif msg.data['custom_id'] == bt[1].custom_id:  # stay
                     stay = True
 
+                elif msg.data['custom_id'] == bt[2].custom_id:  # double
+                    stats.subtract('money', bet)
+                    playerhand.add(deck.draw())
+                    playerhand.doubled = True
+                    stay = True
+
+                elif msg.data['custom_id'] == bt[3].custom_id: # split
+                    stats.subtract('money', bet)
+                    player.insert(i+1, cards.BlackjackHand(playerhand.draw()))
+                    playerhand.add(deck.draw())
+                    player[i+1].add(deck.draw())
+
         embed = mtoedit.embeds[0]
-        embed.description = 'Waiting for dealer...'
-        while not aceToInt(cardsToVal(dealerhand)) >= 17:
+
+        if player[0].busted and len(player) == 1:
+            embed.description = "Bust! You lost {0} money.".format(bet)
+            embed.color = discord.Color.red()
             await mtoedit.edit(embed=embed.clear_fields()
                 .add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
+                    name="Dealer ({0})".format(dealerhand.toVal()),
+                    value=str(dealerhand)
                 ).add_field(
-                    name="You ({0})".format(cardsToVal(playerhand)),
-                    value=cardsToStr(playerhand)
+                    name="You ({0})".format(player[0].toVal()),
+                    value=listHands(player)
+                ),
+                view=None
+            )
+            stats.add(('moneylost', 'loss'), (bet, 1))
+            return
+
+        embed.description = 'Waiting for dealer...'
+        while not (dealerhand.busted or int(dealerhand) >= 17):
+            await mtoedit.edit(embed=embed.clear_fields()
+                .add_field(
+                    name="Dealer ({0})".format(dealerhand.toVal()),
+                    value=str(dealerhand)
+                ).add_field(
+                    name="You ({0})".format(', '.join([str(x.toVal()) for x in player])),
+                    value=listHands(player)
                 ),
                 view=None
             )
             await asyncio.sleep(1)
             dealerhand.append(deck.draw())
 
-        if aceToInt(cardsToVal(playerhand)) > aceToInt(cardsToVal(dealerhand)):
-            await mtoedit.edit(embed=discord.Embed(
-                    title="Blackjack",
-                    description="You are closer to 21! You won {0} money.".format(bet),
-                    color=discord.Color.green()
-                ).add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(cardsToVal(playerhand)),
-                    value=cardsToStr(playerhand)
-                ).set_footer(
-                    text=footer
-                ),
-                view=None
-            )
-            user.add(author.id,"money",bet)
-            user.add(author.id,"moneygained",bet)
-            user.add(author.id,"wins",1)
-            return
-        elif aceToInt(cardsToVal(playerhand)) < aceToInt(cardsToVal(dealerhand)) and aceToInt(cardsToVal(dealerhand)) <= 21:
-            await mtoedit.edit(embed=discord.Embed(
-                    title="Blackjack",
-                    description="Dealer is closer to 21! You lost {0} money.".format(bet),
-                    color=discord.Color.red()
-                ).add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(cardsToVal(playerhand)),
-                    value=cardsToStr(playerhand)
-                ).set_footer(
-                    text=footer
-                ),
-                view=None
-            )
-            user.add(author.id,"money",-bet)
-            user.add(author.id,"moneylost",bet)
-            user.add(author.id,"loss",1)
-            return
-        elif aceToInt(cardsToVal(playerhand)) == aceToInt(cardsToVal(dealerhand)):
-            await mtoedit.edit(embed=discord.Embed(
-                    title="Blackjack",
-                    description="It's a tie! No one wins.",
-                    color=discord.Color.red()
-                ).add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(cardsToVal(playerhand)),
-                    value=cardsToStr(playerhand)
-                ).set_footer(
-                    text=footer
-                ),
-                view=None
-            )
-            return
-        elif aceToInt(cardsToVal(dealerhand)) > 21:
-            await mtoedit.edit(embed=discord.Embed(
-                    title="Blackjack",
-                    description="Dealer busts! You won {0} money.".format(bet),
-                    color=discord.Color.green()
-                ).add_field(
-                    name="Dealer ({0})".format(cardsToVal(dealerhand)),
-                    value=cardsToStr(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(cardsToVal(playerhand)),
-                    value=cardsToStr(playerhand)
-                ).set_footer(
-                    text=footer
-                ),
-                view=None
-            )
-            user.add(author.id,"money",bet)
-            user.add(author.id,"moneygained",bet)
-            user.add(author.id,"wins",1)
-            return
-        else:
-            await ctx.send(embed=discord.Embed(
-                    title="What‽",
-                    description="Ollin's shitty programming must've done something unexpected. Try again.",
-                    color=discord.Color.red()
-                ).set_footer(text=footer)
-            )
-            return
+        toSend: list[str] = []
+        moneyWon: int = 0
+        gameWorth: int = 0
+        for d in player:
+            if d.busted:
+                toSend.append(listHands([d]))
+                gameWorth += bet*2 if d.doubled else bet
+                continue
+            elif int(d) > int(dealerhand) or dealerhand.busted:
+                toSend.append(f'🟩{str(d)}')
+                gameWorth += bet*2 if d.doubled else bet
+                moneyWon += bet*4 if d.doubled or d.is_blackjack() else bet*2
+            elif int(d) < int(dealerhand):
+                toSend.append(f'🟥{str(d)}')
+                gameWorth += bet*2 if d.doubled else bet
+            elif int(d) == int(dealerhand):
+                toSend.append(f'🟨{str(d)}')
+                gameWorth += bet*2 if d.doubled else bet
+                moneyWon += bet*2 if d.doubled else bet
+
+
+        if moneyWon < gameWorth:
+            embed.description = f'You lost ${gameWorth-moneyWon}!'
+            embed.color = discord.Color.red()
+        elif moneyWon == gameWorth:
+            embed.description = f'You broke even with ${moneyWon}!'
+            embed.color = discord.Color.yellow()
+        elif moneyWon > gameWorth:
+            embed.description = f'You won ${moneyWon-gameWorth}!'
+            embed.color = discord.Color.green()
+
+        await mtoedit.edit(embed=embed.clear_fields()
+            .add_field(
+                name="Dealer ({0})".format(dealerhand.toVal()),
+                value=str(dealerhand)
+            ).add_field(
+                name="You ({0})".format(', '.join([str(x.toVal()) for x in player])),
+                value=listHands(player)
+            ),
+            view=None
+        )
+
+
+
 
     @commands.hybrid_command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -316,9 +266,6 @@ class Games(commands.Cog):
 
         if ante + tie > user.read(ctx.author.id,'money'):
             raise e.BrokeError(ante+tie,user.read(ctx.author.id,'money'))
-        
-        if ante % 2 == 1:
-            raise e.ArgumentValueError(f'Argument "ante" must be even! (received odd number "{ante}")')
 
         deck = cards.Deck()
 
@@ -399,14 +346,7 @@ class Games(commands.Cog):
                 msg = await bot.wait_for("interaction", check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                 await msg.response.defer()
             except asyncio.TimeoutError:
-                await mtoedit.edit(embed=discord.Embed(
-                        title="TimeoutError",
-                        description="Sorry, you failed to respond in under 20 seconds so I gave up",
-                        color=discord.Color.red()
-                    ).set_footer(text=footer),
-                    view=None
-                )
-                return
+                raise e.CommandTimeoutError(20)
             
             # user stuff
             print(pointer)
@@ -531,21 +471,15 @@ class Games(commands.Cog):
             msg = await self.bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [b.custom_id for b in bt], timeout=10.0)
             await msg.response.defer()
         except asyncio.TimeoutError:
-            await mtoedit.edit(embed=discord.Embed(title="TimeoutError",description="Sorry, you failed to respond in under 10 seconds so I gave up",color=discord.Color.red()).set_footer(text=footer),view=None)
-            print("timeouterror: dude failed to respond under the time limit")
-            return
+            raise e.CommandTimeoutError(10)
 
         if bt[x].custom_id == msg.data['custom_id']:
             await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()).set_footer(text=footer),view=None)
-            user.add(author.id,"moneygained",bet)
-            user.add(author.id,"wins",1)
-            user.add(author.id,"money",bet)
+            user.add(author.id,('moneygained','wins','money'),(bet,1,bet))
             print("won")
         else:
             await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You lost {0} money!".format(bet),color=discord.Color.red()).set_footer(text=footer),view=None)
-            user.add(author.id,"moneylost",bet)
-            user.add(author.id,"loss",1)
-            user.add(author.id,"money",-bet)
+            user.add(author.id,('moneylost','loss','money'),(bet,1,-bet))
             print("loss")
 
     @commands.hybrid_command(name='doubleornothing',aliases=['double','db'])
@@ -553,7 +487,7 @@ class Games(commands.Cog):
     async def double(self, ctx:commands.Context) -> None:
         """bet = $50"""
         bet: int = 50
-        if user.read(ctx.author,'money') < bet:
+        if ctx.author.stats.read('money') < bet:
             raise e.BrokeError(50,user.read(ctx.author,'money'))
         
         chance: int = 70
@@ -574,7 +508,7 @@ class Games(commands.Cog):
         start_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654292934686/start.png'
         jackpot_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621655274401802/jackpot.png'
 
-        bt: list[Button] = [Button(label='Double',custom_id='double'),Button(label='Cash Out',custom_id='cash',disabled=True)]
+        bt: list[Button] = [Button(label='Double'),Button(label='Cash Out',disabled=True)]
         buttons: View = View(timeout=10)
         for x in bt: buttons.add_item(x)
 
@@ -595,14 +529,7 @@ class Games(commands.Cog):
                 msg = await self.bot.wait_for('interaction',check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=10)
                 await msg.response.defer()
             except asyncio.TimeoutError:
-                await mtoedit.edit(embed=discord.Embed(
-                        title="TimeoutError",
-                        description="Sorry, you failed to respond in under 10 seconds so I gave up",
-                        color=discord.Color.red()
-                    ).set_footer(text=bcfg['footer']),
-                    view=None
-                )
-                return
+                raise e.CommandTimeoutError(10)
             
             bt[1].disabled = False
             buttons.clear_items().add_item(bt[0]).add_item(bt[1])
