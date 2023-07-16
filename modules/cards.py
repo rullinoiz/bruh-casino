@@ -105,7 +105,6 @@ class Card():
 
 class Deck():
     def __init__(self, decks:int=None, deck:list[Card]=None) -> None:
-        print(decks)
         if decks:
             self._deck: list[Card] = [Card(CardValue(v),s) for v in CardValue.FACE for s in Suit] * decks
         elif deck:
