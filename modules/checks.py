@@ -2,7 +2,7 @@ from discord.ext.commands import Context, check, Converter
 import modules.exceptions as e
 from modules.user_sqlite import user
 from typing import *
-
+from modules.server import server
 
 def is_developer(action:str=None):
     def predicate(ctx:Context) -> bool:
@@ -16,6 +16,13 @@ def under_construction():
         if not ctx.author.id == 441422344851030046:
             raise e.UnderConstruction()
         return True
+    return check(predicate)
+
+def is_command_enabled(command:str=None):
+    def predicate(ctx:Context) -> bool:
+        if server.read(ctx.guild.id, f'enable_{command or ctx.command}'):
+            return True
+        raise e.CommandNotEnabled(command or ctx.context)
     return check(predicate)
 
 class Money(Converter):

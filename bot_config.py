@@ -34,6 +34,10 @@ bot_config = {
             "desc": "Set whether to post 'i saw what you deleted' gif when a user deletes a message",
             "type": "bool",
         },
+        "enable_snipe": {
+            "desc": "enables the +snipe command which sends the last deleted message in the server",
+            "type": "bool"
+        }
     },
     "default_template":{
         "money": 1000,
@@ -55,6 +59,7 @@ bot_config = {
         "speech_bubble": True,
         "lingering_levelup": True,
         "i_saw_what_you_deleted": True,
+        "enable_snipe": True,
     },
     "le_admin":441422344851030046
 

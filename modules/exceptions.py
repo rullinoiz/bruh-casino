@@ -70,3 +70,9 @@ class CommandTimeoutError(CommandError):
         self.time = time
         self.codestyle = codestyle
         super().__init__(f'Sorry, you failed to respond in {time} seconds so I gave up')
+
+class CommandNotEnabled(CommandError):
+    def __init__(self, command:str, codestyle:bool=False) -> None:
+        self.command = command
+        self.codestyle = codestyle
+        super().__init__(f'The command "{command}" is not enabled for this server.')

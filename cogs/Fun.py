@@ -7,6 +7,7 @@ from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 
 from modules.server import server
+from modules.checks import is_command_enabled
 
 random.seed(time.time_ns())
 
@@ -70,6 +71,7 @@ class Fun(commands.Cog):
                 await msg.channel.send('https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif')
 
     @commands.hybrid_command()
+    @is_command_enabled(command='snipe')
     async def snipe(self, ctx: Context) -> None:
         msg = ctx.sniped
         if msg:
