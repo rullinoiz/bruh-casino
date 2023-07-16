@@ -1,7 +1,7 @@
 import random
 import time
 import typing
-from typing import Union
+from typing import Union, overload
 from enum import Enum, auto
 
 random.seed(time.time())
@@ -71,8 +71,8 @@ class CardValue():
 
 class Card():
     def __init__(self, value:CardValue=CardValue('A'), suit:Suits=Suit(1)) -> None:
-        self._value = value
-        self._suit = suit
+        self._value: CardValue = value
+        self._suit: Suit = suit
 
     def __str__(self) -> str:
         return str(self._suit)+str(self.value.face_value)
@@ -104,18 +104,30 @@ class Card():
         return self.value.rank
 
 class Deck():
-    def __init__(self, shuffle:bool=True, decks:int=1) -> None:
-        self._deck: list[Card] = [Card(CardValue(v),s) for v in CardValue.FACE for s in Suit] * decks
-        if shuffle: self.shuffle()
+    def __init__(self, decks:int=None, deck:list[Card]=None) -> None:
+        print(decks)
+        if decks:
+            self._deck: list[Card] = [Card(CardValue(v),s) for v in CardValue.FACE for s in Suit] * decks
+        elif deck:
+            self._deck: list[Card] = deck if type(deck) is list else [deck]
 
     def __str__(self) -> str:
         return str(self._deck)
     
     def __repr__(self) -> str:
-        return f'<Deck with {len(self._deck)} cards>'
+        return f'<Deck with {len(self)} cards>'
     
-    def __sizeof__(self) -> int:
+    def __len__(self) -> int:
         return len(self._deck)
+
+    def __getitem__(self, index: int) -> Card:
+        return self._deck[index]
+
+    def __setitem__(self, index: int, value: Card) -> None:
+        self._deck[index] = value
+
+    def __add__(self, obj) -> None:
+        self._deck += obj.list()
 
     def shuffle(self) -> None:
         random.shuffle(self._deck)
@@ -129,6 +141,60 @@ class Deck():
     
     def add(self, card:Card, index:int=0) -> None:
         self._deck.insert(index,card)
+
+    def append(self, card:Card, index:int=0) -> None:
+        self._deck.append(card)
+
+
+class BlackjackHand(Deck):
+    def __init__(self, deck:list[Card]) -> None:
+        super().__init__(deck=deck)
+        self._doubled: bool = False
+
+    def __int__(self) -> int:
+        return int(str(self.toVal()).split('/')[0])
+
+    def __str__(self) -> str:
+        t = [str(i) for i in self.list()]
+        if self.doubled: t[-1] = '[' + str(t[-1]) + ']'
+        return ('⭐️' if self.is_blackjack() else '') + ' '.join(t)
+
+    @property
+    def busted(self) -> bool:
+        return int(self) > 21
+
+    def is_blackjack(self) -> bool:
+        return len(self) == 2 and int(self) == 21
+
+    @property
+    def doubled(self) -> bool:
+        return self._doubled
+
+    @doubled.setter
+    def doubled(self, val:bool) -> None:
+        self._doubled = val
+
+    def toVal(self) -> Union[str, int]:
+        t: typing.Union[str, int] = 0
+        t2: int = 0
+        a: bool = False
+        for i in self.list():
+            if i.value.bj_face_value == 11:
+                if t + 11 <= 21:
+                    t += 11
+                else:
+                    t += 1
+                t2 += 1
+                a = True
+            else:
+                t += i.value.bj_face_value
+                t2 += i.value.bj_face_value
+
+        if t > 21: t = t2
+        elif t == t2: pass
+        elif a: t = f'{t}/{t2}'
+
+        return t
 
 
 def shuffle():
