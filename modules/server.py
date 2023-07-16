@@ -25,8 +25,8 @@ class server:
         temp.close()
         if not str(id) in data:
             data[str(id)] = bot_config['default_template_server']
-        elif str(id) in data:
-            data[str(id)][stat] = content
+
+        data[str(id)][stat] = content
 
         temp = open(bot_config['serverpath'],"w")
         temp.write(str(j.dumps(data)))
@@ -59,10 +59,7 @@ class server:
         elif str(id) in data:
             if stat not in data[str(id)]:
                 if stat not in bot_config['default_template_server']:
-                    data[str(id)][stat] = 0
-                    temp = open(bot_config['serverpath'],"w")
-                    temp.write(str(j.dumps(data)))
-                    temp.close()
+                    raise KeyError(f'Key "{stat}" not found')
                 elif stat in bot_config['default_template_server']:
                     data[str(id)][stat] = bot_config['default_template_server'][stat]
                     temp = open(bot_config['serverpath'],"w")
