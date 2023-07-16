@@ -1,11 +1,12 @@
 import discord
 import hashlib as hsh
 import time
+import subprocess
 
 bot_config = {
     "prefix":"+",
-    "footer":"© rullinoiz - {0}".format(hsh.md5(str(time.time()).encode("utf-8")).hexdigest()),
-    "version":"10%",
+    "footer":"© rullinoiz - {0}".format(subprocess.run(['git','log','--pretty=format:"commit: %h"','-1'], capture_output=True, text=True).stdout[1:-1]),
+    "version":"40%",
     "datapath":"userdata.txt",
     "serverpath":"serverdata.txt",
     "botlogs":"botlogs.txt",
