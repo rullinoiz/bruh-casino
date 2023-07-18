@@ -175,8 +175,8 @@ class Games(commands.Cog):
                 elif msg.data['custom_id'] == bt[3].custom_id: # split
                     stats.subtract('money', bet)
                     player.insert(i+1, cards.BlackjackHand(playerhand.draw()))
-                    playerhand.add(deck.draw())
-                    player[i+1].add(deck.draw())
+                    playerhand.append(deck.draw())
+                    player[i+1].append(deck.draw())
                     bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money')
 
         embed = mtoedit.embeds[0]
