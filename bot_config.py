@@ -26,12 +26,16 @@ bot_config = {
             "desc": "Set whether the bot randomly (1% chance) sends a speech bubble gif to destroy an argument",
             "type": "bool",
         },
-        "lingering_levelup": {
-            "desc": "Set whether levelup messages are deleted after some time",
-            "type": "bool",
-        },
         "i_saw_what_you_deleted": {
             "desc": "Set whether to post 'i saw what you deleted' gif when a user deletes a message",
+            "type": "bool",
+        },
+        "lowtiergod": {
+            "desc": "Set whether to reply to messages with various horrible game titles in them with lowtiergod",
+            "type": "bool",
+        },
+        "lingering_levelup": {
+            "desc": "Set whether levelup messages are deleted after some time",
             "type": "bool",
         },
         "enable_snipe": {
@@ -60,6 +64,7 @@ bot_config = {
         "lingering_levelup": True,
         "i_saw_what_you_deleted": True,
         "enable_snipe": True,
+        "lowtiergod": True,
     },
     "le_admin":441422344851030046
 

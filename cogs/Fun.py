@@ -49,6 +49,10 @@ class Fun(commands.Cog):
         self.get_sniped(msg.guild.id)
         self.sniped[msg.guild.id][msg.channel.id] = msg
 
+    def lowtiergod(self, msg: discord.Message) -> bool:
+        for i in ['genshin impact', 'league of legends']:
+            if i in msg.content.lower(): return True
+
     async def cog_before_invoke(self, ctx: Context) -> None:
         ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
 
@@ -69,11 +73,13 @@ class Fun(commands.Cog):
         else:
             if 'https://media.discordapp.net/attachments/769591923387269143/947381976015470682/IMG_1406.gif' in msg.content:
                 await msg.channel.send('https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif')
+            elif server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
+                await msg.reply('https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561')
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')
     async def snipe(self, ctx: Context) -> None:
-        msg = ctx.sniped
+        msg:discord.Message = ctx.sniped
         if msg:
             embed = discord.Embed(
                 description=msg.content
