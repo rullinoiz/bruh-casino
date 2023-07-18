@@ -487,7 +487,7 @@ class Games(commands.Cog):
     async def double(self, ctx:commands.Context) -> None:
         """bet = $50"""
         bet: int = 50
-        if ctx.author.stats.read('money') < bet:
+        if ctx.stats.read('money') < bet:
             raise e.BrokeError(50,user.read(ctx.author,'money'))
         
         chance: int = 70
