@@ -11,7 +11,8 @@ class Configuration(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
 
-    def _to_bool(self, t) -> typing.Union[bool, None]:
+    @staticmethod
+    def _to_bool(t) -> typing.Union[bool, None]:
         print(t)
         try:
             return bool(int(t))
@@ -26,7 +27,7 @@ class Configuration(commands.Cog):
         if not key or (key not in sv_data):
             await ctx.send(embed=discord.Embed(
                 title='Bot Options',
-                description='\n'.join(["{0} (`{1}`): {2}".format(i,sv_data[i]['type'],sv_data[i]['desc']) for i in sv_data]) + f'\n\nRun `{bcfg["prefix"]}config [option] [value]` to configure this bot for this server',
+                description='\n'.join(["- **{0}** (`{1}`): {2}".format(i,sv_data[i]['type'],sv_data[i]['desc']) for i in sv_data]) + f'\n\nRun `{bcfg["prefix"]}config [option] [value]` to configure this bot for this server',
                 color=discord.Color.orange()
             ).set_footer(text=bcfg['footer']))
             return
