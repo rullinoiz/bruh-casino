@@ -84,15 +84,13 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
     )
 
 @client.event
-async def on_message(message) -> None:
+async def on_message(message: discord.Message) -> None:
     if message.author == client.user or message.is_system():
         return
 
     if message.mention_everyone or client.user.mentioned_in(message):
-        try:
-            await message.add_reaction(discord.utils.get(message.guild.emojis,name="ping"))
-        except discord.NotFound:
-            print("ping emoji not found")
+        reaction = discord.utils.get(message.guild.emojis,name="ping")
+        if reaction: await message.add_reaction(reaction)
         print("pinged lmao")
 
     if not message.content.startswith(prefix) and "bruh" in message.content.lower():
