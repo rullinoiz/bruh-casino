@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -98,6 +100,24 @@ class Debugging(commands.Cog):
     async def refresh(self, ctx: commands.Context) -> None:
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
+
+    @commands.hybrid_command(name='changelog',aliases=['git'])
+    async def git(self, ctx: commands.Context) -> None:
+        proc = await asyncio.create_subprocess_shell(
+            'git --no-pager log --pretty=oneline --abbrev-commit --graph --decorate --all',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout,stderr = await proc.communicate()
+
+        stdout = str(stdout)[2:-1].split('\\n')
+        stdout = '\n'.join(stdout[:min(10,len(stdout))])
+
+        await ctx.send(embed=discord.Embed(
+                title='Changelog',
+                description='Changelog for this bot (topmost is latest, last 10 commits shown)\n' + stdout
+            ).set_footer(text=bcfg['footer'])
+        )
 
 async def setup(bot) -> None:
     await bot.add_cog(Debugging(bot))
