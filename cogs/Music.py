@@ -500,8 +500,9 @@ class Music(commands.Cog):
         await self.join(ctx)
         await ctx.send('joined',delete_after=5)
 
-    async def join(self, ctx: commands.Context) -> None:
-        destination = ctx.author.voice.channel
+    @staticmethod
+    async def join(ctx: commands.Context) -> None:
+        destination: discord.VoiceChannel = ctx.author.voice.channel
         if ctx.voice_state.voice:
             await ctx.voice_state.voice.move_to(destination)
             return
@@ -709,7 +710,8 @@ class Music(commands.Cog):
         await ctx.send('Autoplay is now ' + ('on' if ctx.voice_state.autoplay else 'off') )
 
     @commands.hybrid_command(name='play', aliases=['p'])
-    async def _play(self, ctx, *, search: str) -> None:
+    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
+    async def _play(self, ctx: commands.Context, *, search: str) -> None:
         """Plays a song.
         If there are songs in the queue, this will be queued until the
         other songs finished playing.
@@ -717,20 +719,21 @@ class Music(commands.Cog):
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
 
-        #await ctx.send('we do a little loading')
+        if not ctx.interaction: await ctx.send('we do a little loading')
         await ctx.defer()
-        source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+        source: typing.Union[YTDLSource, list[YTDLSource]] = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
         if not ctx.voice_state.voice:
             await self.join(ctx)
         
-        is_playing = ctx.voice_state.is_playing
+        is_playing: bool = ctx.voice_state.is_playing
         if type(source) is list:
             for i in source:
-                song = Song(i)
+                song: Song = Song(i)
                 await ctx.voice_state.songs.put(song)
 
             await asyncio.sleep(1)
-            return await ctx.send(content=f'queued {len(source)} songs',embed=None if is_playing else ctx.voice_state.current.create_embed())
+            await ctx.send(content=f'queued {len(source)} songs',embed=None if is_playing else ctx.voice_state.current.create_embed())
+            return
 
         song = Song(source)
         await ctx.voice_state.songs.put(song)
