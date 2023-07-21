@@ -9,11 +9,11 @@ from typing import Union, Any, Iterable, overload
 class user_instance: pass
 
 class user:
-    s = sq.connect(r'user.db')
-    c = s.cursor()
+    s: sq.Connection = sq.connect(r'user.db')
+    c: sq.Cursor = s.cursor()
 
     @classmethod
-    def ensure_existence(cls, userid:Union[int, User, user_instance], add_new:bool=False) -> bool:
+    def ensure_existence(cls, userid:Union[int, User, Member, user_instance], add_new:bool=False) -> bool:
         userid:int = userid if type(userid) is int else userid.id
         if cls.c.execute('select id from user where id = ?;',(userid,)).fetchone() is None:
             if add_new:
@@ -23,20 +23,20 @@ class user:
         return True
 
     @classmethod
-    def write(cls, userid:Union[int, User, user_instance], stat:str, content:Any) -> None:
+    def write(cls, userid:Union[int, User, Member, user_instance], stat:str, content:Any) -> None:
         userid:int = userid if type(userid) is int else userid.id
         t = cls.ensure_existence(userid, True)
         cls.c.execute(f'update user set {stat} = ? where id = ?;',(content,userid))
         cls.s.commit()
 
     @classmethod
-    def read(cls, userid:Union[int, User, user_instance], stat:str) -> int:
+    def read(cls, userid:Union[int, User, Member, user_instance], stat:str) -> int:
         userid: int = userid if type(userid) is int else userid.id
         t = cls.ensure_existence(userid, True)
         return cls.c.execute(f'select {stat} from user where id = ?;',(userid,)).fetchone()[0]
 
     @classmethod
-    def add(cls, userid:Union[int, User, user_instance], stat:Union[str, Iterable[str]], value:Union[int, Iterable[int]]) -> None:
+    def add(cls, userid:Union[int, User, Member, user_instance], stat:Union[str, Iterable[str]], value:Union[int, Iterable[int]]) -> None:
         userid:int = userid if type(userid) is int else userid.id
         t = cls.ensure_existence(userid, True)
         if type(stat) is str:
@@ -44,14 +44,14 @@ class user:
             cls.s.commit()
         elif type(stat) is tuple:
             if len(stat) != len(value): raise ValueError('stat and value are of different length')
-            command = f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value[x] > 0 else " - ") + str(value[x]) for x in range(0,len(stat)))} where id = {userid}'
+            command: str = f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value[x] > 0 else " - ") + str(value[x]) for x in range(0,len(stat)))} where id = {userid}'
             cls.c.execute(command)
             cls.s.commit()
 
     @classmethod
-    def subtract(cls, userid:Union[int, Member, user_instance], stat:str, value:int) -> None:
+    def subtract(cls, userid:Union[int, User, Member, user_instance], stat:str, value:int) -> None:
         userid: int = userid if type(userid) is int else userid.id
-        t = cls.ensure_existence(userid, True)
+        cls.ensure_existence(userid, True)
         cls.c.execute(f'update user set {stat} = {stat} - ? where id = ?', (abs(value), userid))
         cls.s.commit()
 

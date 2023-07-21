@@ -17,7 +17,7 @@ import subprocess as subp
 
 class Debugging(commands.Cog):
     def __init__(self, bot) -> None:
-        self.bot = bot
+        self.bot: discord.Client = bot
 
     @commands.hybrid_command()
     @is_developer()
@@ -31,9 +31,9 @@ class Debugging(commands.Cog):
     @is_developer()
     async def money(self, ctx, user:discord.Member, money:int) -> None:
         """conterfeit money"""
-        footer = bcfg['footer']
+        footer: str = bcfg['footer']
 
-        user_.write(str(user.id),"money",money)
+        user_.write(user,"money",money)
         await ctx.send(embed=discord.Embed(
                 title="Success",
                 description="Money for user <@{0}> has been successfully set to {1}.".format(str(user.id),money),
@@ -45,16 +45,15 @@ class Debugging(commands.Cog):
     @is_developer()
     async def reload(self, ctx:commands.Context, cog:str) -> None:
         """reloads a command module"""
-        message = ctx.message
-        prg = f'self.bot.reload_extension(\'{cog}\')'
+        message: discord.Message = ctx.message
+        prg: str = f'self.bot.reload_extension(\'{cog}\')'
         
         result = eval(prg)
         if inspect.isawaitable(result):
             result = await result
-        await (message.add_reaction if not ctx.interaction else ctx.send)("✅")
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
-        return
+        await (message.add_reaction if not ctx.interaction else ctx.send)("✅")
 
     @reload.autocomplete('cog')
     async def reload_autocomplete(self, ctx:discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
@@ -79,8 +78,6 @@ class Debugging(commands.Cog):
     @is_developer('do that shit')
     async def sql(self, ctx:commands.Context, *, prg:str) -> None:
         """we do a little sql injection"""
-
-        print(f'{prg} {type(prg)}')
         try:
             result = user_.c.execute(str(prg))
             result = result.fetchall()
@@ -100,6 +97,16 @@ class Debugging(commands.Cog):
     async def refresh(self, ctx: commands.Context) -> None:
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
+
+    @commands.hybrid_command(name='refreshall')
+    @is_developer()
+    async def refreshall(self, ctx: commands.Context) -> None:
+        await ctx.defer()
+        mtoedit: discord.Message = await ctx.send('loading...')
+        async for i in self.bot.fetch_guilds():
+            ctx.bot.tree.copy_global_to(guild=i)
+            await ctx.bot.tree.sync(guild=i)
+        await mtoedit.edit(content='done')
 
     @commands.hybrid_command(name='changelog',aliases=['git'])
     async def git(self, ctx: commands.Context) -> None:
