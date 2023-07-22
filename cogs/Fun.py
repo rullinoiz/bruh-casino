@@ -52,6 +52,7 @@ class Fun(commands.Cog):
     def lowtiergod(self, msg: discord.Message) -> bool:
         for i in ['genshin impact', 'league of legends']:
             if i in msg.content.lower(): return True
+        return False
 
     async def cog_before_invoke(self, ctx: Context) -> None:
         ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
@@ -67,7 +68,7 @@ class Fun(commands.Cog):
     async def on_message(self, msg: discord.Message) -> None:
         if msg.author == self.bot.user or msg.is_system() or bcfg['prefix'] in msg.content:
             return
-        if server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69:
+        if not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69:
             await msg.channel.send(content=random.choice(bubble_gifs))
             print('trolled')
         else:
