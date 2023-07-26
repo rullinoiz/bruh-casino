@@ -91,5 +91,11 @@ class user_instance:
     def read(self, stat:Union[str, Iterable[str]]) -> int:
         return user.read(self, stat)
 
+    def won(self, amount:int) -> None:
+        return user.add(self, ('money','moneygained','won'), (amount,amount,1))
+
+    def lost(self, amount:int) -> None:
+        return user.add(self, ('money','moneylost','loss'), (-amount,amount,1))
+
     def subtract(self, stat:Union[str, Iterable[str]], value:Union[int, Iterable[int]]) -> None:
         return user.subtract(self, stat, value)

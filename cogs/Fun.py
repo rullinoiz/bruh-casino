@@ -37,19 +37,20 @@ class Fun(commands.Cog):
         self.bot = bot
         self.sniped: dict = {}
 
-    def get_sniped(self, id: int, ctx:Context=None):
-        if not self.sniped.get(id):
-            self.sniped[id]: dict = {}
+    def get_sniped(self, _id: int, ctx:Context=None):
+        if not self.sniped.get(_id):
+            self.sniped[_id]: dict = {}
 
         if ctx:
-            return self.sniped[id].get(ctx.channel.id)
-        return self.sniped[id]
+            return self.sniped[_id].get(ctx.channel.id)
+        return self.sniped[_id]
     
     def set_sniped(self, msg: discord.Message) -> None:
         self.get_sniped(msg.guild.id)
         self.sniped[msg.guild.id][msg.channel.id] = msg
 
-    def lowtiergod(self, msg: discord.Message) -> bool:
+    @staticmethod
+    def lowtiergod(msg: discord.Message) -> bool:
         for i in ['genshin impact', 'league of legends']:
             if i in msg.content.lower(): return True
         return False

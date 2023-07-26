@@ -219,7 +219,6 @@ class Games(commands.Cog):
             if d.busted:
                 toSend.append(listHands([d]))
                 gameWorth += bet*2 if d.doubled else bet
-                continue
             elif int(d) > int(dealerhand) or dealerhand.busted:
                 toSend.append(f'{"🟩" if len(player) > 1 else ""}{str(d)}')
                 gameWorth += bet*2 if d.doubled else bet
@@ -236,12 +235,15 @@ class Games(commands.Cog):
         if moneyWon < gameWorth:
             embed.description = f'You lost ${gameWorth-moneyWon}!'
             embed.color = discord.Color.red()
+            stats.add(('moneylost','loss'),(gameWorth-moneyWon,1))
         elif moneyWon == gameWorth:
             embed.description = f'You broke even with ${moneyWon}!'
             embed.color = discord.Color.yellow()
+            stats.add('money',gameWorth)
         elif moneyWon > gameWorth:
             embed.description = f'You won ${moneyWon-gameWorth}!'
             embed.color = discord.Color.green()
+            stats.add(('money','moneygained','won'),(moneyWon,moneyWon-gameWorth,1))
 
         await mtoedit.edit(embed=embed.clear_fields()
             .add_field(
@@ -254,9 +256,6 @@ class Games(commands.Cog):
             view=None
         )
 
-
-
-
     @commands.hybrid_command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     @checks.under_construction()
@@ -264,20 +263,20 @@ class Games(commands.Cog):
         """tie pays 12:1"""
         footer = bcfg['footer']
 
-        if ante + tie > user.read(ctx.author.id,'money'):
-            raise e.BrokeError(ante+tie,user.read(ctx.author.id,'money'))
+        if ante + tie > ctx.stats['money']:
+            raise e.BrokeError(ante+tie,ctx.stats['money'])
 
-        deck = cards.Deck()
+        deck: cards.Deck = cards.Deck()
 
         dealers: list[cards.Card] = [deck.draw()]
         users: list[cards.Card] = [deck.draw()]
 
-        bt: list[Button] = [Button(label='Go to War!'),Button(label='Surrender')]
+        bt: list[Button] = [Button(label='Go to War! ($'+str(ante)+')'),Button(label='Surrender')]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x) 
 
-        if dealers.rank == users.rank:
-            await ctx.send(embed=discord.Embed(
+        if dealers[0].rank == users[0].rank:
+            mtoedit: discord.Message = await ctx.send(embed=discord.Embed(
                     title="War",
                     description="It's a tie!" + (" Your tie paid $" + tie*12 + "!") if tie != 0 else "",
                     color=discord.Color.orange(),
@@ -287,15 +286,14 @@ class Games(commands.Cog):
                 .set_footer(text=footer),
                 view=buttons
             )
-            
-            user.ensure_existence(ctx.author.id,True)
-            user.c.execute(f"""update user set
-            money = money + {(tie*10)-ante},
-            moneylost = moneylost + {ante},
-            moneygained = moneygained + {tie*10},
-            wins = wins + 1
-            where id = {ctx.author.id}""")
-            user.s.commit()
+
+            ctx.stats.add(('money','moneygained','wins'),(tie*12,tie*12,1))
+
+            try:
+                msg = await self.bot.wait_for('interaction', check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
+                msg.response.defer()
+            except asyncio.TimeoutError:
+                pass
 
     @commands.hybrid_command(name='russianroulette',aliases=['russian'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -331,13 +329,16 @@ class Games(commands.Cog):
 
         bt: list[Button] = [Button(label='Spin and shoot'),Button(label='Shoot')]
         buttons = View(timeout=20)
-        for x in bt: buttons.add_item(x) 
+        for x in bt: buttons.add_item(x)
+
+        def chances() -> float:
+            return int((bullets / (len(barrel)-sincespin))*10000) / 100
 
         mtoedit = await ctx.send(embed=discord.Embed(
                     title="Russian Roulette",
                     description=playerthing.format(person,gun,actions),
                     color=discord.Color.orange(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%"),
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(chances()) + "%"),
                 view=buttons
         )
 
@@ -383,12 +384,12 @@ class Games(commands.Cog):
                     title="Russian Roulette",
                     description="{0}{1}\nBot's turn\n👤\n\nWaiting for response...\n".format(person,gun,actions),
                     color=discord.Color.orange(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived,inline=False).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%",inline=False),
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived,inline=False).add_field(name="Chance of freaking dying",value=str(chances()) + "%",inline=False),
                 view=None
             )
             
             await asyncio.sleep(2)
-            if ((sincespin + 1) / (6 - bullets))*100 < 80:
+            if chances() < 50:
                 print(pointer)
                 sincespin += 1
                 if barrel[pointer] == 1:
@@ -417,7 +418,7 @@ class Games(commands.Cog):
                     title="Russian Roulette",
                     description=playerthing.format(person,gun,actions),
                     color=discord.Color.orange(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%"),
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(chances()) + "%"),
                 view=buttons
             )
             
@@ -426,7 +427,7 @@ class Games(commands.Cog):
                     title="Russian Roulette",
                     description="🙂🕶👌\noof\n👤{0}{1}\n\nYou ate lead!\n".format(boom,gun),
                     color=discord.Color.red(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%"),
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(chances()) + "%"),
                 view=None
             )
             await asyncio.sleep(0.5)
@@ -434,7 +435,7 @@ class Games(commands.Cog):
                     title="Russian Roulette",
                     description="😎👌\noof\n👤{1}{2}\n\nYou ate lead!\n".format(person,boom,gun),
                     color=discord.Color.red(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%")
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(chances()) + "%")
             )
             return
         elif botdead:
@@ -442,7 +443,7 @@ class Games(commands.Cog):
                     title="Russian Roulette",
                     description="😵{0}{1}\noof\n👤\n\nThe bot ate lead!\n".format(boom,gun),
                     color=discord.Color.green(),
-                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(((sincespin + 1) / (6 - bullets))*100) + "%"),
+                ).set_footer(text=footer).add_field(name="Shots Survived",value=survived).add_field(name="Chance of freaking dying",value=str(chances()) + "%"),
                 view=None
             )
             return      
@@ -487,8 +488,8 @@ class Games(commands.Cog):
     async def double(self, ctx:commands.Context) -> None:
         """bet = $50"""
         bet: int = 50
-        if ctx.stats.read('money') < bet:
-            raise e.BrokeError(50,user.read(ctx.author,'money'))
+        if ctx.stats['money'] < bet:
+            raise e.BrokeError(bet,ctx.stats['money'])
         
         chance: int = 70
         jackpot: int = 1000000
@@ -555,13 +556,7 @@ class Games(commands.Cog):
                 embed.color = discord.Color.green()
                 embed.set_image(url=cashout_image)
                 embed.description = f'You cashed out for ${bet * (2**(current_multiplier-1))}!'
-                user.ensure_existence(ctx.author.id,True)
-                user.c.execute("""update user set 
-                money = money + ?, 
-                moneygained = moneygained + ?,
-                wins = wins + 1 
-                where id = ?""",(mon,mon,ctx.author.id))
-                user.s.commit()
+                ctx.stats.won(mon)
                 await mtoedit.edit(embed=embed,view=None)
                 return
         
@@ -569,26 +564,14 @@ class Games(commands.Cog):
             embed.color = discord.Color.red()
             embed.set_image(url=multiplier_image[0])
             embed.description = f'You lost ${bet} lmao'
-            user.ensure_existence(ctx.author.id,True)
-            user.c.execute("""update user set
-            money = money - ?,
-            moneylost = moneylost + ?,
-            loss = loss + 1
-            where id = ?""",(bet,bet,ctx.author.id))
-            user.s.commit()
+            ctx.stats.lost(bet)
             await mtoedit.edit(embed=embed,view=None)
             return
         elif won:
             embed.color = discord.Color.yellow()
             embed.set_image(url=jackpot_image)
             embed.description = f'You won a jackpot of ${jackpot}!'
-            user.ensure_existence(ctx.author.id,True)
-            user.c.execute("""update user set
-            money = money + ?,
-            moneygained = moneygained + ?,
-            wins = wins + 1
-            where id = ?""",(jackpot,jackpot,ctx.author.id))
-            user.s.commit()
+            ctx.stats.won(jackpot)
             await mtoedit.edit(embed=embed,view=None)
             return
 
