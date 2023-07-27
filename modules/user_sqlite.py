@@ -92,7 +92,7 @@ class user_instance:
         return user.read(self, stat)
 
     def won(self, amount:int) -> None:
-        return user.add(self, ('money','moneygained','won'), (amount,amount,1))
+        return user.add(self, ('money','moneygained','wins'), (amount,amount,1))
 
     def lost(self, amount:int) -> None:
         return user.add(self, ('money','moneylost','loss'), (-amount,amount,1))

@@ -243,7 +243,7 @@ class Games(commands.Cog):
         elif moneyWon > gameWorth:
             embed.description = f'You won ${moneyWon-gameWorth}!'
             embed.color = discord.Color.green()
-            stats.add(('money','moneygained','won'),(moneyWon,moneyWon-gameWorth,1))
+            stats.add(('money','moneygained','wins'),(moneyWon,moneyWon-gameWorth,1))
 
         await mtoedit.edit(embed=embed.clear_fields()
             .add_field(
