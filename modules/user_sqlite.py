@@ -17,8 +17,8 @@ class user:
         userid:int = userid if type(userid) is int else userid.id
         if cls.c.execute('select id from user where id = ?;',(userid,)).fetchone() is None:
             if add_new:
-                user.c.execute('insert into user(id) values(?);',(userid,))
-                user.s.commit()
+                cls.c.execute('insert into user(id) values(?);',(userid,))
+                cls.s.commit()
             return False
         return True
 
