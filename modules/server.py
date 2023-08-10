@@ -1,4 +1,5 @@
 import json as j
+import typing
 from bot_config import bot_config
 
 class server:
@@ -33,7 +34,7 @@ class server:
         temp.close()
 
     @classmethod
-    def read(cls, id:int, stat:str):
+    def read(cls, id:int, stat:str) -> typing.Union[str, bool]:
         """
         Parameters
         ----------
@@ -48,6 +49,8 @@ class server:
             Read stats.
 
         """
+        if id is None: return False
+
         temp = open(bot_config['serverpath'],"r")
         data = j.loads(str(temp.read()))
         temp.close()
