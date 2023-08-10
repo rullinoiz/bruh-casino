@@ -67,7 +67,7 @@ class Fun(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message) -> None:
-        if msg.author == self.bot.user or msg.is_system() or bcfg['prefix'] in msg.content:
+        if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or bcfg['prefix'] in msg.content:
             return
         if not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69:
             await msg.channel.send(content=random.choice(bubble_gifs))
