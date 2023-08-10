@@ -21,7 +21,7 @@ class ArgumentError(CommandError):
             'Money': 'number',
             'MoneyEven': 'even number'
         }
-        return t if t not in types.keys() else types[t]
+        return types.get(t, default=t)
 
 class ArgumentValueError(CommandError):
     def __init__(self, msg:str='Invalid value for argument') -> None:
