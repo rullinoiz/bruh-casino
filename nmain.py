@@ -76,11 +76,12 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
     codestyle = True if not hasattr(e, 'codestyle') else e.codestyle
     description = f'```{str(e)}```'
     if not codestyle: description = description[3:-3]
-    await ctx.send(embed=discord.Embed(
+    await (e.message.edit if hasattr(e, 'message') else ctx.send)(embed=discord.Embed(
             title=type(e).__name__,
             description=description,
-            color=discord.Color.red()
-        ).set_footer(text=footer)
+            color=discord.Color.red(),
+        ).set_footer(text=footer),
+        view=None
     )
 
 @client.event
