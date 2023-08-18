@@ -115,7 +115,7 @@ class Fun(commands.Cog):
             if i.content is None or i.content == '': continue
             if i.author.name not in users.keys():users[i.author.name] = 1
             else: users[i.author.name] += 1
-            messages.append(AttorneyComment(i))
+            messages.insert(0, AttorneyComment(i))
 
         users: list = sorted(users, reverse=True)
         await ctx.defer()
