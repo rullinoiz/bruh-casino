@@ -699,7 +699,7 @@ def get_characters(most_common: List):
     return characters
 
 
-def comments_to_scene(comments: List, characters: Dict, output_file: str) -> io.BytesIO:
+def comments_to_scene(comments: List, characters: Dict):
     scene = []
     inv_characters = {v: k for k, v in characters.items()}
     for comment in comments:
@@ -784,4 +784,4 @@ def comments_to_scene(comments: List, characters: Dict, output_file: str) -> io.
             formatted_scene["audio"] = last_audio
             change_audio = False
         formatted_scenes.append(formatted_scene)
-    return ace_attorney_anim(formatted_scenes, output_file=output_file)
+    return formatted_scenes

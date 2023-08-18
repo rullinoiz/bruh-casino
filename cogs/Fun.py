@@ -4,6 +4,7 @@ import time
 import random
 import typing
 import os
+import re
 
 import modules.attorney as attorn
 
@@ -39,7 +40,7 @@ bubble_gifs: list[str] = [
 class AttorneyComment:
     def __init__(self, message: discord.Message) -> None:
         self.author = message.author
-        self.body = message.content
+        self.body = re.sub(r"^[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$", '[link]', message.content)
         self.score = 0
 
 class Fun(commands.Cog):
@@ -119,7 +120,10 @@ class Fun(commands.Cog):
 
         users: list = sorted(users, reverse=True)
         await ctx.defer()
-        await ctx.send(file=discord.File(attorn.comments_to_scene(messages, attorn.get_characters(users), file := str(ctx.channel.id) + '.mp4'), filename='attorney.mp4'))
+        scenes = attorn.comments_to_scene(messages, attorn.get_characters(users))
+        mtoedit = await ctx.send('compiling video...')
+        video = attorn.ace_attorney_anim(scenes, file := str(_channel.id) + '.mp4')
+        await mtoedit.edit(content=None, attachments=[discord.File(video, filename='attorney.mp4')])
         os.remove(file)
 
 async def setup(bot: commands.Bot) -> None:
