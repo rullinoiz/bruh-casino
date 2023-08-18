@@ -39,7 +39,7 @@ bubble_gifs: list[str] = [
 class AttorneyComment:
     def __init__(self, message: discord.Message) -> None:
         self.author = message.author
-        self.body = attorn.split_str_into_newlines(message.content)
+        self.body = message.content
         self.score = 0
 
 class Fun(commands.Cog):
@@ -106,10 +106,12 @@ class Fun(commands.Cog):
 
     @commands.hybrid_command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
-    async def attorney(self, ctx: Context, last_messages: int=20) -> None:
+    async def attorney(self, ctx: Context, last_messages: int=20, channel: discord.TextChannel = None) -> None:
         users: dict = {}
         messages: list[AttorneyComment] = []
-        async for i in ctx.channel.history(limit=last_messages, oldest_first=True):
+        _channel = channel or ctx.channel
+
+        async for i in _channel.history(limit=last_messages, oldest_first=True):
             if i.content is None or i.content == '': continue
             if i.author.name not in users.keys():users[i.author.name] = 1
             else: users[i.author.name] += 1
