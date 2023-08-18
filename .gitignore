@@ -7,3 +7,4 @@ serverdata.txt
 *.swp
 **/'
 .idea/
+**/output.mp4

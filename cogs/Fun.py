@@ -2,12 +2,16 @@ import discord
 from discord.ext import commands
 import time
 import random
+import typing
+import os
+
+import modules.attorney as attorn
 
 from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 
 from modules.server import server
-from modules.checks import is_command_enabled
+from modules.checks import is_command_enabled, under_construction
 
 random.seed(time.time_ns())
 
@@ -32,6 +36,12 @@ bubble_gifs: list[str] = [
     'https://tenor.com/view/nerding-speech-bubble-pepe-nerd-gif-26077806'
 ]
 
+class AttorneyComment:
+    def __init__(self, message: discord.Message) -> None:
+        self.author = message.author
+        self.body = attorn.split_str_into_newlines(message.content)
+        self.score = 0
+
 class Fun(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -51,9 +61,9 @@ class Fun(commands.Cog):
 
     @staticmethod
     def lowtiergod(msg: discord.Message) -> bool:
-        for i in ['genshin impact', 'league of legends']:
-            if i in msg.content.lower(): return True
-        return False
+        return any(
+            i in msg.content for i in ['genshin impact', 'league of legends', 'valorant']
+        )
 
     async def cog_before_invoke(self, ctx: Context) -> None:
         ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
@@ -81,8 +91,7 @@ class Fun(commands.Cog):
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')
     async def snipe(self, ctx: Context) -> None:
-        msg:discord.Message = ctx.sniped
-        if msg:
+        if msg := ctx.sniped:
             embed = discord.Embed(
                 description=msg.content
             ).set_author(name=msg.author.name,icon_url=msg.author.display_avatar.url).set_footer(text=bcfg['footer'])
@@ -94,6 +103,22 @@ class Fun(commands.Cog):
             ).set_footer(text=bcfg['footer'])
         
         await ctx.send(embed=embed,delete_after=None if msg else 7)
+
+    @commands.hybrid_command()
+    @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
+    async def attorney(self, ctx: Context, last_messages: int=20) -> None:
+        users: dict = {}
+        messages: list[AttorneyComment] = []
+        async for i in ctx.channel.history(limit=last_messages, oldest_first=True):
+            if i.content is None or i.content == '': continue
+            if i.author.name not in users.keys():users[i.author.name] = 1
+            else: users[i.author.name] += 1
+            messages.append(AttorneyComment(i))
+
+        users: list = sorted(users, reverse=True)
+        await ctx.defer()
+        await ctx.send(file=discord.File(attorn.comments_to_scene(messages, attorn.get_characters(users), file := str(ctx.channel.id) + '.mp4'), filename='attorney.mp4'))
+        os.remove(file)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Fun(bot))
