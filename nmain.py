@@ -6,7 +6,6 @@ from itertools import combinations,cycle
 from os import system as sys
 from random import randint as random
 from random import seed
-from discord.utils import get as dget
 import bot_config
 from modules.server import server
 from modules.user_sqlite import user
@@ -73,15 +72,16 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
     elif f == commands.MaxConcurrencyReached:
         e = MultipleInstanceError(ctx.command)
 
-    codestyle = True if not hasattr(e, 'codestyle') else e.codestyle
+    codestyle: bool = getattr(e, 'codestyle', True)
     description = f'```{str(e)}```'
     if not codestyle: description = description[3:-3]
-    await (e.message.edit if hasattr(e, 'message') else ctx.send)(embed=discord.Embed(
+    await (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)(
+        embed=discord.Embed(
             title=type(e).__name__,
             description=description,
             color=discord.Color.red(),
         ).set_footer(text=footer),
-        view=None
+        **({'view':None} if toedit else {'view':None,'ephemeral':True})
     )
 
 @client.event
@@ -134,7 +134,7 @@ async def on_message(message: discord.Message) -> None:
                     await channel.send(
                         embed=discord.Embed(
                             title="Level Up!",
-                            description=server.read(channel.guild.id,"levelmsg").replace("{user}","<@{0}>".format(author.id)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
+                            description=server.read(channel.guild.id,"levelmsg").replace("{user}","{0}".format(author.mention)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
                             color=discord.Color.green(),
                         ).set_footer(text=footer),
                         delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
