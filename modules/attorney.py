@@ -18,6 +18,7 @@ from textblob import TextBlob, exceptions
 import re
 import tempfile
 import subprocess
+import asyncio
 import threading
 import io
 
@@ -558,22 +559,25 @@ def do_audio(sound_effects: List[Dict]):
     final_se = music_se.overlay(audio_se)
     return final_se
 
-def ace_attorney_anim(config: List[Dict], output_file: str):
-    vid = tempfile.NamedTemporaryFile(suffix='.mp4')
-    sound_effects = do_video(config, vid.name)
+def do_both(config: List[Dict], output_vid: str, output_aud: str) -> None:
+    do_audio(do_video(config, output_vid)).export(output_aud)
 
+async def ace_attorney_anim(config: List[Dict], output_file: str):
+    vid = tempfile.NamedTemporaryFile(suffix='.mp4')
     aud = tempfile.NamedTemporaryFile(suffix='.mp3')
-    do_audio(sound_effects).export(aud.name)
+
+    await asyncio.to_thread(do_both, config, vid.name, aud.name)
 
     video = ffmpeg.input(vid.name)
     audio = ffmpeg.input(aud.name)
 
     args = ffmpeg.concat(video, audio, v=1, a=1).output(output_file).get_args()
     if os.path.isfile(output_file): os.remove(output_file)
+    print(args)
 
-    process = subprocess.Popen(['ffmpeg'] + ['-loglevel','quiet'] + args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    process = await asyncio.create_subprocess_exec(*(['ffmpeg', '-loglevel','quiet'] + args), stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE)
 
-    process.wait()
+    stdout, stderr = await process.communicate()
     return open(output_file,'rb')
 
 

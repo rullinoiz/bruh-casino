@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 import time
@@ -112,6 +114,8 @@ class Fun(commands.Cog):
         messages: list[AttorneyComment] = []
         _channel = channel or ctx.channel
 
+        await ctx.defer()
+
         async for i in _channel.history(limit=last_messages):
             if i.content is None or i.content == '': continue
             if i.author.name not in users.keys():users[i.author.name] = 1
@@ -119,11 +123,13 @@ class Fun(commands.Cog):
             messages.insert(0, AttorneyComment(i))
 
         users: list = sorted(users, reverse=True)
-        await ctx.defer()
-        scenes = attorn.comments_to_scene(messages, attorn.get_characters(users))
+        scenes = await asyncio.to_thread(attorn.comments_to_scene, messages, attorn.get_characters(users))
         mtoedit = await ctx.send('compiling video...')
-        video = attorn.ace_attorney_anim(scenes, file := str(_channel.id) + '.mp4')
-        await mtoedit.edit(content=None, attachments=[discord.File(video, filename='attorney.mp4')])
+        video = await attorn.ace_attorney_anim(scenes, file := str(_channel.id) + '.mp4')
+        await mtoedit.edit(
+            content='(big thanks to https://github.com/micah5/ace-attorney-reddit-bot/blob/master/anim.py)',
+            attachments=[discord.File(video, filename='attorney.mp4')]
+        )
         os.remove(file)
 
 async def setup(bot: commands.Bot) -> None:
