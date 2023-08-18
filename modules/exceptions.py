@@ -1,4 +1,5 @@
 from discord.ext.commands import CommandError, Command
+from discord import Message
 
 class AccessDenied(CommandError):
     def __init__(self, action:str=None, codestyle:bool=False) -> None:
@@ -66,9 +67,10 @@ class TooMuchData(CommandError):
         super().__init__(msg)
 
 class CommandTimeoutError(CommandError):
-    def __init__(self, time:int=20, codestyle:bool=False) -> None:
+    def __init__(self, time:int=20, codestyle:bool=False, msg:Message=None) -> None:
         self.time = time
         self.codestyle = codestyle
+        self.message = msg
         super().__init__(f'Sorry, you failed to respond in {time} seconds so I gave up')
 
 class CommandNotEnabled(CommandError):
