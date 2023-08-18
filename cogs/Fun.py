@@ -111,7 +111,7 @@ class Fun(commands.Cog):
         messages: list[AttorneyComment] = []
         _channel = channel or ctx.channel
 
-        async for i in _channel.history(limit=last_messages, oldest_first=True):
+        async for i in _channel.history(limit=last_messages):
             if i.content is None or i.content == '': continue
             if i.author.name not in users.keys():users[i.author.name] = 1
             else: users[i.author.name] += 1
