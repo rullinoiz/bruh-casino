@@ -493,7 +493,12 @@ class Music(commands.Cog):
             if message.embeds:
                 print(message.embeds[0].to_dict())"""
 
-    @commands.hybrid_command(name='join', invoke_without_subcommand=True)
+    @commands.hybrid_group(with_app_command=True)
+    @commands.guild_only()
+    async def music(self, ctx: commands.Context) -> None:
+        pass
+
+    @music.command(name='join', invoke_without_subcommand=True)
     async def _join(self, ctx: commands.Context) -> None:
         """Joins a voice channel."""
 
@@ -509,7 +514,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.hybrid_command(name='summon')
+    @music.command(name='summon')
     async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
         """Summons the bot to a voice channel.
         If no channel was specified, it joins your channel.
@@ -526,7 +531,7 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
         #await ctx.send('joined',delete_after=5)
 
-    @commands.hybrid_command(name='leave', aliases=['disconnect'])
+    @music.command(name='leave', aliases=['disconnect'])
     async def _leave(self, ctx: commands.Context) -> None:
         """Clears the queue and leaves the voice channel."""
 
@@ -538,7 +543,7 @@ class Music(commands.Cog):
         del self.voice_states[ctx.guild.id]
         await ctx.send('stopped',delete_after=5)
 
-    @commands.hybrid_command(name='volume')
+    @music.command(name='volume')
     @commands.check_any(commands.is_owner(),is_developer())
     async def _volume(self, ctx: commands.Context, *, volume: int) -> None:
         """Sets the volume of the player."""
@@ -554,7 +559,7 @@ class Music(commands.Cog):
         ctx.voice_state.volume = volume / 100
         await ctx.send('volume set to {}%'.format(volume))
 
-    @commands.hybrid_command(name='now', aliases=['current', 'playing'])
+    @music.command(name='now', aliases=['current', 'playing'])
     async def _now(self, ctx: commands.Context) -> None:
         """Displays the currently playing song."""
         if not ctx.voice_state.current:
@@ -563,7 +568,7 @@ class Music(commands.Cog):
         embed = ctx.voice_state.current.create_embed()
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name='pause', aliases=['pa'])
+    @music.command(name='pause', aliases=['pa'])
     async def _pause(self, ctx: commands.Context) -> None:
         """Pauses the currently playing song."""
         #print(">>>Pause Command:")
@@ -572,7 +577,7 @@ class Music(commands.Cog):
             await ctx.send('paused',delete_after=5)
             #await ctx.message.add_reaction('⏯')
 
-    @commands.hybrid_command(name='resume', aliases=['re', 'res'])
+    @music.command(name='resume', aliases=['re', 'res'])
     async def _resume(self, ctx: commands.Context) -> None:
         """Resumes a currently paused song."""
 
@@ -581,7 +586,7 @@ class Music(commands.Cog):
             await ctx.send('resumed',delete_after=5)
             #await ctx.message.add_reaction('⏯')
 
-    @commands.hybrid_command(name='stop')
+    @music.command(name='stop')
     async def _stop(self, ctx: commands.Context) -> None:
         """Stops playing song and clears the queue."""
 
@@ -592,7 +597,7 @@ class Music(commands.Cog):
             await ctx.send('stopped',delete_after=5)
             #await ctx.message.add_reaction('⏹')
 
-    @commands.hybrid_command(name='skip', aliases=['s'])
+    @music.command(name='skip', aliases=['s'])
     async def _skip(self, ctx: commands.Context) -> None:
         """skip the song"""
 
@@ -621,7 +626,7 @@ class Music(commands.Cog):
         # else:
         #     await ctx.send('You have already voted to skip this song.')
 
-    @commands.hybrid_command(name='queue')
+    @music.command(name='queue')
     async def _queue(self, ctx: commands.Context, *, page: int = 1) -> None:
         """Shows the player's queue.
         You can optionally specify the page to show. Each page contains 10 elements.
@@ -645,7 +650,7 @@ class Music(commands.Cog):
                  .set_footer(text='page {}/{}'.format(page, pages)))
         await ctx.send(embed=embed)
 
-    @commands.command(name='shuffle')
+    @music.command(name='shuffle')
     async def _shuffle(self, ctx: commands.Context) -> None:
         """Shuffles the queue."""
 
@@ -657,7 +662,7 @@ class Music(commands.Cog):
         await ctx.send('shuffled',delete_after=5)
         #await ctx.message.add_reaction('✅')
 
-    @commands.hybrid_command(name='remove')
+    @music.command(name='remove')
     async def _remove(self, ctx: commands.Context, index: int) -> None:
         """Removes a song from the queue at a given index."""
 
@@ -679,7 +684,7 @@ class Music(commands.Cog):
                 data.append(app_commands.Choice(name=name, value=i))
         return data
 
-    @commands.command(name='loop')
+    @music.command(name='loop')
     async def _loop(self, ctx: commands.Context) -> None:
         """Loops the currently playing song.
         Invoke this command again to unloop the song.
@@ -709,7 +714,7 @@ class Music(commands.Cog):
         #await ctx.message.add_reaction('✅')
         await ctx.send('Autoplay is now ' + ('on' if ctx.voice_state.autoplay else 'off') )
 
-    @commands.hybrid_command(name='play', aliases=['p'])
+    @music.command(name='play', aliases=['p'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def _play(self, ctx: commands.Context, *, search: str) -> None:
         """Plays a song.
