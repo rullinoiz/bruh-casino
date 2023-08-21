@@ -4,9 +4,10 @@ import discord
 from discord.ext import commands
 import time
 import random
-import typing
+from typing import Optional
 import os
 import re
+import tempfile
 
 import modules.attorney as attorn
 
@@ -39,10 +40,17 @@ bubble_gifs: list[str] = [
     'https://tenor.com/view/nerding-speech-bubble-pepe-nerd-gif-26077806'
 ]
 
+gif_reply = {
+    'https://media.discordapp.net/attachments/769591923387269143/947381976015470682/IMG_1406.gif': 'https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif',
+    'https://media.discordapp.net/attachments/806268326031917067/910886249756233748/image0-132-1.gif': 'https://tenor.com/view/cat-cat-cat-cat-cat-cat-cat-cat-cat-cat-catc-atca-gif-25291329'
+}
+
 class AttorneyComment:
+    pattern = r"""(?i)\b((?:https?:(?:/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:(?<!@)[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b/?(?!@)))"""
+
     def __init__(self, message: discord.Message) -> None:
         self.author = message.author
-        self.body = re.sub(r"^[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)$", '[link]', message.content)
+        self.body = re.sub(self.pattern, '[link]', message.content)
         self.score = 0
 
 class Fun(commands.Cog):
@@ -65,7 +73,7 @@ class Fun(commands.Cog):
     @staticmethod
     def lowtiergod(msg: discord.Message) -> bool:
         return any(
-            i in msg.content for i in ['genshin impact', 'league of legends', 'valorant']
+            i in msg.content.lower() for i in ['genshin impact', 'league of legends', 'valorant']
         )
 
     async def cog_before_invoke(self, ctx: Context) -> None:
@@ -86,10 +94,16 @@ class Fun(commands.Cog):
             await msg.channel.send(content=random.choice(bubble_gifs))
             print('trolled')
         else:
-            if 'https://media.discordapp.net/attachments/769591923387269143/947381976015470682/IMG_1406.gif' in msg.content:
-                await msg.channel.send('https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif')
-            elif server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
+            for i in gif_reply.keys():
+                if i in msg.content:
+                    await msg.channel.send(gif_reply[i])
+                    return
+
+            if server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
                 await msg.reply('https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561')
+
+        print([i.to_dict() for i in msg.embeds])
+        print([i.url for i in msg.attachments])
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')
@@ -109,7 +123,11 @@ class Fun(commands.Cog):
 
     @commands.hybrid_command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
-    async def attorney(self, ctx: Context, last_messages: int=20, channel: discord.TextChannel = None) -> None:
+    async def attorney(
+            self,
+            ctx: Context,
+            last_messages: commands.Range[int, 3, 50],
+            channel: Optional[discord.TextChannel] = None) -> None:
         users: dict = {}
         messages: list[AttorneyComment] = []
         _channel = channel or ctx.channel
@@ -118,19 +136,46 @@ class Fun(commands.Cog):
 
         async for i in _channel.history(limit=last_messages):
             if i.content is None or i.content == '': continue
-            if i.author.name not in users.keys():users[i.author.name] = 1
+            if i.author.name not in users.keys(): users[i.author.name] = 1
             else: users[i.author.name] += 1
             messages.insert(0, AttorneyComment(i))
 
         users: list = sorted(users, reverse=True)
         scenes = await asyncio.to_thread(attorn.comments_to_scene, messages, attorn.get_characters(users))
         mtoedit = await ctx.send('compiling video...')
-        video = await attorn.ace_attorney_anim(scenes, file := str(_channel.id) + '.mp4')
+        video = await attorn.ace_attorney_anim(
+            scenes,
+            vid := tempfile.NamedTemporaryFile(suffix='.mp4'),
+            aud := tempfile.NamedTemporaryFile(suffix='.mp3'),
+            file := str(_channel.id) + '.mp4',
+            logfile := open((log := tempfile.NamedTemporaryFile()).name,'r+b')
+        )
+
+        while video.returncode is None:
+            await asyncio.sleep(1)
+            logread = str(log.read())[2:-1].replace('\\n','\n')
+            await mtoedit.edit(content='```'+logread[max(0, len(logread)-500):]+'```')
+
+        await video.wait()
+        print('video done')
+
         await mtoedit.edit(
             content='(big thanks to https://github.com/micah5/ace-attorney-reddit-bot/blob/master/anim.py)',
-            attachments=[discord.File(video, filename='attorney.mp4')]
+            attachments=[discord.File(file, filename='attorney.mp4')],
+            embed=None
         )
+
+        logfile.close()
         os.remove(file)
+
+    @commands.hybrid_command()
+    @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
+    @under_construction()
+    async def attorney_new(self,
+                       ctx: Context,
+                       last_messages: int = 20,
+                       channel: Optional[discord.TextChannel] = commands.parameter(default=lambda ctx: ctx.channel)) -> None:
+        pass
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Fun(bot))
