@@ -73,7 +73,7 @@ class Fun(commands.Cog):
     @staticmethod
     def lowtiergod(msg: discord.Message) -> bool:
         return any(
-            i in msg.content.lower() for i in ['genshin impact', 'league of legends', 'valorant']
+            i in msg.content.lower() for i in ['genshin impact', 'league of legends', 'valorant', 'hunie pop', 'huniepop']
         )
 
     async def cog_before_invoke(self, ctx: Context) -> None:
