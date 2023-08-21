@@ -8,9 +8,9 @@ from random import randint as random
 from random import seed
 import bot_config
 from modules.server import server
-from modules.user_sqlite import user
-from modules.exceptions import ArgumentError, MultipleInstanceError
-from modules.checks import is_developer
+from modules.user_sqlite import user as userdata
+from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
+from modules.checks import is_developer, is_developer_predicate
 import os
 import logging
 import inspect
@@ -81,7 +81,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
             description=description,
             color=discord.Color.red(),
         ).set_footer(text=footer),
-        **({'view':None} if toedit else {'view':None,'ephemeral':True})
+        **({'view':None} if toedit or type(e) == AccessDenied else {'view':None,'ephemeral':True})
     )
 
 @client.event
@@ -101,9 +101,9 @@ async def on_message(message: discord.Message) -> None:
             await message.add_reaction("🇺")
             await message.add_reaction("🇭")
 
-        x = message.content.count('bruh')
+        x = message.content.lower().count('bruh')
 
-        user.add(message.author.id,"bruh",x)
+        userdata.add(message.author.id,"bruh",x)
         print("bruh")
         return
 
@@ -120,25 +120,33 @@ async def on_message(message: discord.Message) -> None:
         channel = message.channel
         author = message.author
         if not author.bot:
-            if user.read(author.id,"lastmsg") < (time.time() - 30):
-                user.write(author.id,"lastmsg",time.time())
-                user.add(author.id,"exp",random(5,15))
+            if userdata.read(author.id,"lastmsg") < (time.time() - 30):
+                userdata.write(author.id,"lastmsg",time.time())
+                userdata.add(author.id,"exp",random(5,15))
                 
                 print("message counted")
                 
-                if user.read(author.id,"exp") >= (user.read(author.id,"lvl") * expincrement) + expstart:
-                    user.write(author.id,"exp",user.read(author.id,"exp") - ((user.read(author.id,"lvl") * expincrement) + expstart))
-                    user.add(author.id,"lvl",1)
+                if userdata.read(author.id,"exp") >= (userdata.read(author.id,"lvl") * expincrement) + expstart:
+                    userdata.write(author.id,"exp",userdata.read(author.id,"exp") - ((userdata.read(author.id,"lvl") * expincrement) + expstart))
+                    userdata.add(author.id,"lvl",1)
                     
                     print("level up")
-                    await channel.send(
-                        embed=discord.Embed(
-                            title="Level Up!",
-                            description=server.read(channel.guild.id,"levelmsg").replace("{user}","{0}".format(author.mention)).replace("{level}",str(user.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
-                            color=discord.Color.green(),
-                        ).set_footer(text=footer),
-                        delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
-                    )
+                    if server.read(channel.guild.id,'levelup_announce'):
+                        await channel.send(
+                            embed=discord.Embed(
+                                title="Level Up!",
+                                description=server.read(channel.guild.id,"levelmsg").replace("{user}","{0}".format(author.mention)).replace("{level}",str(userdata.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
+                                color=discord.Color.green(),
+                            ).set_footer(text=footer),
+                            delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
+                        )
+
+@client.event
+async def on_reaction_add(reaction:discord.Reaction, user: discord.User) -> None:
+    print(reaction, user)
+    if reaction.message.author != client.user or reaction.emoji != '❌': return
+
+    if is_developer_predicate(user): await reaction.message.delete()
 
 @client.command(name='exec')
 @is_developer()

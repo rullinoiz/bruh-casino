@@ -1,5 +1,3 @@
-import discord
-import hashlib as hsh
 import time
 import subprocess
 
@@ -17,6 +15,10 @@ bot_config = {
         "levelmsg": {
             "desc": "Set the level up message. Comes with variables {user} and {level}.",
             "type": "str",
+        },
+        "levelup_announce": {
+            "desc": "Whether or not to announce that a user has leveled up",
+            "type": "bool"
         },
         "bruhreact": {
             "desc": "Set whether the bot reacts to any message with the word \"bruh\" in it. Best left off.",
@@ -59,6 +61,7 @@ bot_config = {
     },
     "default_template_server":{
         "levelmsg": "funny man {user} just got to level {level}",
+        "levelup_announce": True,
         "bruhreact": False,
         "speech_bubble": True,
         "lingering_levelup": True,
@@ -67,5 +70,4 @@ bot_config = {
         "lowtiergod": True,
     },
     "le_admin":441422344851030046
-
 }
