@@ -102,8 +102,8 @@ class Fun(commands.Cog):
             if server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
                 await msg.reply('https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561')
 
-        print([i.to_dict() for i in msg.embeds])
-        print([i.url for i in msg.attachments])
+        # print([i.to_dict() for i in msg.embeds])
+        # print([i.url for i in msg.attachments])
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')

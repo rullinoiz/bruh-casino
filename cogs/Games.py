@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from discord.ui import Button,View
 import modules.cards as cards
-from modules.user_sqlite import user, user_instance
+from modules.user_sqlite import user
+from modules.user_instance import user_instance
 from bot_config import bot_config as bcfg
 
 import modules.checks as checks
@@ -17,7 +18,7 @@ class Games(commands.Cog):
         self.bot = bot
 
     async def cog_before_invoke(self, ctx:commands.Context) -> None:
-        ctx.stats: user_instance = user_instance(ctx)
+        ctx.stats = user_instance(ctx)
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -47,7 +48,7 @@ class Games(commands.Cog):
         #
         #         return '\n'.join(val)
 
-        stats.subtract('money', bet)
+        stats.money -= bet
 
         dealerhand: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
         player: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
@@ -101,7 +102,7 @@ class Games(commands.Cog):
                     text=footer
                 )
             )
-            stats.add('money', bet)
+            stats.money += bet
             return
         
         bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label=f'Double Down (${bet})',disabled=False),Button(label=f'Split (${bet})',disabled=player[0].value!=player[1].value)]
@@ -155,7 +156,7 @@ class Games(commands.Cog):
                     msg = await bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                     await msg.response.defer()
                 except asyncio.TimeoutError:
-                    raise e.CommandTimeoutError()
+                    raise e.CommandTimeoutError(time=20, msg=mtoedit)
 
                 # TODO: Refactor for 3.11 (when it comes out)
                 if msg.data['custom_id'] == bt[0].custom_id:  # hit
@@ -167,7 +168,7 @@ class Games(commands.Cog):
                     stay = True
 
                 elif msg.data['custom_id'] == bt[2].custom_id:  # double
-                    stats.subtract('money', bet)
+                    stats.money -= bet
                     playerhand.append(deck.draw())
                     playerhand.doubled = True
                     stay = True
@@ -347,7 +348,7 @@ class Games(commands.Cog):
                 msg = await bot.wait_for("interaction", check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                 await msg.response.defer()
             except asyncio.TimeoutError:
-                raise e.CommandTimeoutError(20)
+                raise e.CommandTimeoutError(time=20, msg=mtoedit)
             
             # user stuff
             print(pointer)
@@ -472,7 +473,7 @@ class Games(commands.Cog):
             msg = await self.bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [b.custom_id for b in bt], timeout=10.0)
             await msg.response.defer()
         except asyncio.TimeoutError:
-            raise e.CommandTimeoutError(10)
+            raise e.CommandTimeoutError(time=10, msg=mtoedit)
 
         if bt[x].custom_id == msg.data['custom_id']:
             await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()).set_footer(text=footer),view=None)
@@ -530,7 +531,7 @@ class Games(commands.Cog):
                 msg = await self.bot.wait_for('interaction',check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=10)
                 await msg.response.defer()
             except asyncio.TimeoutError:
-                raise e.CommandTimeoutError(10)
+                raise e.CommandTimeoutError(time=10, msg=mtoedit)
             
             bt[1].disabled = False
             buttons.clear_items().add_item(bt[0]).add_item(bt[1])
