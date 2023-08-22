@@ -43,6 +43,10 @@ bot_config = {
         "enable_snipe": {
             "desc": "enables the +snipe command which sends the last deleted message in the server",
             "type": "bool"
+        },
+        "enable_troll": {
+            "desc": "enables the +troll command which epicly speech bubbles the next messager",
+            "type": "bool"
         }
     },
     "default_template":{
@@ -67,6 +71,7 @@ bot_config = {
         "lingering_levelup": True,
         "i_saw_what_you_deleted": True,
         "enable_snipe": True,
+        "enable_troll": True,
         "lowtiergod": True,
     },
     "le_admin":441422344851030046

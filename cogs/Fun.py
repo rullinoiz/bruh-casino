@@ -15,7 +15,9 @@ from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 
 from modules.server import server
+from modules.user_instance import user_instance
 from modules.checks import is_command_enabled, under_construction
+from modules.exceptions import BrokeError
 
 random.seed(time.time_ns())
 
@@ -41,8 +43,16 @@ bubble_gifs: list[str] = [
 ]
 
 gif_reply = {
-    'https://media.discordapp.net/attachments/769591923387269143/947381976015470682/IMG_1406.gif': 'https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif',
-    'https://media.discordapp.net/attachments/806268326031917067/910886249756233748/image0-132-1.gif': 'https://tenor.com/view/cat-cat-cat-cat-cat-cat-cat-cat-cat-cat-catc-atca-gif-25291329'
+    'https://media.discordapp.net/attachments/769591923387269143/947381976015470682/IMG_1406.gif': {
+        'content': 'https://media.discordapp.net/attachments/769591923387269143/947382042012823612/IMG_1407.gif',
+        'replytome': False
+    },
+    'https://media.discordapp.net/attachments/806268326031917067/910886249756233748/image0-132-1.gif': {
+        'content': 'https://tenor.com/view/cat-cat-cat-cat-cat-cat-cat-cat-cat-cat-catc-atca-gif-25291329',
+        'replytome': False
+    },
+    'kys': 'https://media.discordapp.net/attachments/886495693626294312/1136808274478506024/image.gif',
+    'kill yourself': 'https://media.discordapp.net/attachments/886495693626294312/1136808274478506024/image.gif'
 }
 
 class AttorneyComment:
@@ -53,10 +63,18 @@ class AttorneyComment:
         self.body = re.sub(self.pattern, '[link]', message.content)
         self.score = 0
 
+class TrollAlreadyArmed(commands.CommandError):
+    def __init__(self, msg: str = 'troll already armed for this channel') -> None:
+        self.msg = msg
+        self.codestyle = False
+        self.ephemeral = True
+        super().__init__(msg)
+
 class Fun(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.sniped: dict = {}
+        self.nexttroll: dict = {}
 
     def get_sniped(self, _id: int, ctx:Context=None):
         if not self.sniped.get(_id):
@@ -78,6 +96,7 @@ class Fun(commands.Cog):
 
     async def cog_before_invoke(self, ctx: Context) -> None:
         ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
+        ctx.stats = user_instance(ctx)
 
     @commands.Cog.listener()
     async def on_message_delete(self, msg: discord.Message) -> None:
@@ -90,20 +109,38 @@ class Fun(commands.Cog):
     async def on_message(self, msg: discord.Message) -> None:
         if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or bcfg['prefix'] in msg.content:
             return
-        if not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69:
+        if (not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69) or self.nexttroll.get(msg.channel.id, False):
             await msg.channel.send(content=random.choice(bubble_gifs))
             print('trolled')
+            if self.nexttroll.get(msg.channel.id): del self.nexttroll[msg.channel.id]
         else:
             for i in gif_reply.keys():
                 if i in msg.content:
-                    await msg.channel.send(gif_reply[i])
-                    return
+                    await (msg.reply if (False if type(gif_reply[i]) is str else gif_reply[i]['replytome']) else msg.channel.send)(content=gif_reply[i] if type(gif_reply[i]) is str else gif_reply[i]['content'])
 
             if server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
                 await msg.reply('https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561')
 
         # print([i.to_dict() for i in msg.embeds])
         # print([i.url for i in msg.attachments])
+
+    @commands.hybrid_command()
+    @is_command_enabled(command='troll')
+    async def troll(self, ctx: Context) -> None:
+        """epicly troll next messager in this channel for 200 money"""
+        price: int = 200
+
+        if self.nexttroll.get(ctx.channel.id):
+            raise TrollAlreadyArmed()
+        if ctx.stats.money < price:
+            raise BrokeError(price, ctx.stats.money)
+
+        ctx.stats.money -= price
+        self.nexttroll[ctx.channel.id] = ctx.author.id
+
+        await ctx.send('troll now armed', ephemeral=True)
+
+
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')

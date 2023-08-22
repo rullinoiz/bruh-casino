@@ -22,7 +22,7 @@ class ArgumentError(CommandError):
             'Money': 'number',
             'MoneyEven': 'even number'
         }
-        return types.get(t, default=t)
+        return types.get(t, t)
 
 class ArgumentValueError(CommandError):
     def __init__(self, msg:str='Invalid value for argument') -> None:

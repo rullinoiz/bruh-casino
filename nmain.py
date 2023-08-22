@@ -81,7 +81,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
             description=description,
             color=discord.Color.red(),
         ).set_footer(text=footer),
-        **({'view':None} if toedit or type(e) == AccessDenied else {'view':None,'ephemeral':True})
+        **({'view':None} if (toedit or type(e) == AccessDenied) and not getattr(e, 'ephemeral', False) else {'view':None,'ephemeral':True})
     )
 
 @client.event

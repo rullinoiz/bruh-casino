@@ -20,6 +20,12 @@ class UserStat:
     def __isub__(self, o: int) -> None:
         user.subtract_from_stat(self, o)
 
+    def __lt__(self, o: int) -> bool:
+        return user.read_from_stat(self) < o
+
+    def __gt__(self, o: int) -> bool:
+        return user.read_from_stat(self) > o
+
     def __int__(self) -> int:
         return int(user.read_from_stat(self))
 
