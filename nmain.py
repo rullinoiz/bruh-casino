@@ -9,6 +9,7 @@ from random import seed
 import bot_config
 from modules.server import server
 from modules.user_sqlite import user as userdata
+from modules.user_instance import user_instance
 from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
 from modules.checks import is_developer, is_developer_predicate
 import os
@@ -74,6 +75,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
 
     codestyle: bool = getattr(e, 'codestyle', True)
     description = f'```{str(e)}```'
+    if codestyle: description += '\n\nplease ping me about this error because it was not intentional'
     if not codestyle: description = description[3:-3]
     await (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)(
         embed=discord.Embed(
