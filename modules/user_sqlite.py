@@ -29,9 +29,10 @@ class user:
         cls.write(stat.id, stat.stat, content)
 
     @classmethod
-    def read(cls, userid:Union[int, User, Member], stat:str) -> int:
+    def read(cls, userid:Union[int, User, Member], stat:Union[str, Iterable[str]]) -> int:
         userid: int = userid if type(userid) is int else userid.id
         t = cls.ensure_existence(userid, True)
+        if type(stat) == tuple: stat = ','.join(stat)
         return cls.c.execute(f'select {stat} from user where id = ?;',(userid,)).fetchone()[0]
 
     @classmethod
@@ -47,7 +48,7 @@ class user:
             cls.s.commit()
         elif type(stat) is tuple:
             if len(stat) != len(value): raise ValueError('stat and value are of different length')
-            command: str = f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value[x] > 0 else " - ") + str(value[x]) for x in range(0,len(stat)))} where id = {userid}'
+            command: str = f'update user set {", ".join(stat[x] + " = " + stat[x] + (" + " if value[x] > 0 else " - ") + str(abs(value[x])) for x in range(0,len(stat)))} where id = {userid}'
             cls.c.execute(command)
             cls.s.commit()
 
