@@ -15,16 +15,22 @@ class Suit(Enum):
     def __str__(self) -> str:
         symbols = list('♤♧♢♡')
         return symbols[self.value-1]
+
+    @property
+    def videopoker_value(self) -> str:
+        symbols = list('scdh')
+        return symbols[self.value-1]
     
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}.{self.name}'
     
 Suits = typing.NewType('Suits', Suit)
 
-class CardValue():
+class CardValue(object):
     FACE = ["A",2,3,4,5,6,7,8,9,10,"J","Q","K"]
     RANK = [2,3,4,5,6,7,8,9,10,'J','Q','K','A']
     BJ_VALUES = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,"J":10,"Q":10,"K":10,"A":11}
+    VIDEOPOKER_VALUES = ['A',2,3,4,5,6,7,8,9,'T','J','Q','K']
 
     def __init__(self, value: Union[str, int]) -> None:
         self._value = None
@@ -67,9 +73,13 @@ class CardValue():
     @property
     def bj_face_str(self) -> str:
         return str(self.bj_face_value) if self.face_value != 'A' else str(self.bj_face_value)
-        
 
-class Card():
+    @property
+    def videopoker_value(self) -> str:
+        return str(self.VIDEOPOKER_VALUES[self.value])
+
+
+class Card(object):
     def __init__(self, value:CardValue=CardValue('A'), suit:Suits=Suit(1)) -> None:
         self._value: CardValue = value
         self._suit: Suit = suit
@@ -84,7 +94,7 @@ class Card():
         return self.value.value == __value.value.value and self.suit == __value.suit
 
     @property
-    def value(self) -> int:
+    def value(self) -> CardValue:
         return self._value
     
     @value.setter
@@ -103,7 +113,11 @@ class Card():
     def rank(self) -> int:
         return self.value.rank
 
-class Deck():
+    @property
+    def videopoker_value(self) -> str:
+        return self.value.videopoker_value + self.suit.videopoker_value
+
+class Deck(object):
     def __init__(self, decks:int=None, deck:list[Card]=None) -> None:
         if decks:
             self._deck: list[Card] = [Card(CardValue(v),s) for v in CardValue.FACE for s in Suit] * decks
@@ -141,7 +155,7 @@ class Deck():
     def add(self, card:Card, index:int=0) -> None:
         self._deck.insert(index,card)
 
-    def append(self, card:Card, index:int=0) -> None:
+    def append(self, card:Card) -> None:
         self._deck.append(card)
 
 

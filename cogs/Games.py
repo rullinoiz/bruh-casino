@@ -5,6 +5,7 @@ import modules.cards as cards
 from modules.user_sqlite import user
 from modules.user_instance import user_instance
 from bot_config import bot_config as bcfg
+from modules.videopoker import HandAnalyzer
 
 import modules.checks as checks
 import modules.exceptions as e
@@ -22,7 +23,7 @@ class Games(commands.Cog):
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def blackjack(self, ctx:commands.Context, bet:checks.Money) -> None:
+    async def blackjack(self, ctx: commands.Context, bet: checks.Money) -> None:
         """blackjack gaming"""
         bot = self.bot
 
@@ -260,7 +261,7 @@ class Games(commands.Cog):
     @commands.hybrid_command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     @checks.under_construction()
-    async def war(self, ctx:commands.Context, ante:checks.Money, tie:checks.Money=0) -> None:
+    async def war(self, ctx: commands.Context, ante: checks.Money, tie: checks.Money = 0) -> None:
         """tie pays 12:1"""
         footer = bcfg['footer']
 
@@ -298,7 +299,7 @@ class Games(commands.Cog):
 
     @commands.hybrid_command(name='russianroulette',aliases=['russian'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def russianroulette(self, ctx:commands.Context) -> None:
+    async def russianroulette(self, ctx: commands.Context) -> None:
         """only in russia"""
 
         bot = self.bot
@@ -451,7 +452,7 @@ class Games(commands.Cog):
 
     @commands.hybrid_command(name='flip')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def flip(self, ctx:commands.Context, bet:checks.Money) -> None:
+    async def flip(self, ctx: commands.Context, bet: checks.Money) -> None:
         """flip coin for moneyz"""
         author = ctx.author
 
@@ -486,14 +487,14 @@ class Games(commands.Cog):
 
     @commands.hybrid_command(name='doubleornothing',aliases=['double','db'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def double(self, ctx:commands.Context) -> None:
-        """bet = $50"""
+    async def double(self, ctx: commands.Context) -> None:
+        """bet = $50, hit x10 for 800000 money"""
         bet: int = 50
         if ctx.stats['money'] < bet:
             raise e.BrokeError(bet,ctx.stats['money'])
         
         chance: int = 70
-        jackpot: int = 1000000
+        jackpot: int = 800000
         multiplier_image: list[str] = [
             'https://cdn.discordapp.com/attachments/1116943999824035882/1121627385125687356/x0.png',
             'https://cdn.discordapp.com/attachments/1116943999824035882/1121621595434274876/x1.png',
@@ -575,6 +576,88 @@ class Games(commands.Cog):
             ctx.stats.won(jackpot)
             await mtoedit.edit(embed=embed,view=None)
             return
+
+    @commands.hybrid_command(name='videopoker')
+    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
+    async def videopoker(self, ctx: commands.Context, bet: checks.Money) -> None:
+        """yahtzee for stoners"""
+        stats = ctx.stats
+
+        deck: cards.Deck = cards.Deck(decks=1)
+        deck.shuffle()
+
+        hand: list[cards.Card] = deck.draw(5)
+        handrank1 = HandAnalyzer(''.join([i.videopoker_value for i in hand]))
+        handrank2: HandAnalyzer = None
+
+        buttons: list[Button] = ([Button(label=str(i)) for i in hand] +
+                                 [Button(label='Deal', style=discord.ButtonStyle.blurple)])
+
+        if handrank1.pay_current_hand(allpays=1, bet=bet) > 0:
+            tohold,_ = handrank1.analyze(False, False)
+            for i in range(2,len(tohold)+1,2):
+                if tohold[i-2:i] != 'XX':
+                    buttons[int((i/2)-1)].style = discord.ButtonStyle.green
+
+        view: View = View(timeout=30)
+        for i in buttons: view.add_item(i)
+
+        description: str = 'green to keep\n' + ' '.join([str(i) for i in hand]) + \
+                           '\n' + handrank1.pay_current_hand(allpays=3, bet=bet)
+
+        embed: discord.Embed = discord.Embed(
+            title='Video Poker',
+            description=description,
+            color=discord.Color.orange()
+        ).set_footer(text=bcfg['footer'])
+
+        firstiter: bool = True
+        dealpressed: bool = False
+        mtoedit: discord.Message = await ctx.send(embed=embed, view=view)
+
+        stats.money -= bet
+
+        while not dealpressed:
+            if not firstiter:
+                await mtoedit.edit(view=view)
+
+            firstiter = False
+
+            try:
+                msg = await self.bot.wait_for('interaction', check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in buttons], timeout=30)
+                await msg.response.defer()
+            except asyncio.TimeoutError:
+                raise e.CommandTimeoutError(time=30, msg=mtoedit)
+
+            bt = msg.data['custom_id']
+
+            if bt == buttons[5].custom_id: # deal
+                dealpressed = True
+                for i in range(0,4):
+                    if buttons[i].style == discord.ButtonStyle.secondary:
+                        hand[i] = deck.draw()
+
+                handrank2 = HandAnalyzer(''.join([i.videopoker_value for i in hand]))
+                break
+
+            for i in buttons:
+                if bt == i.custom_id:
+                    i.style = discord.ButtonStyle.secondary if i.style == discord.ButtonStyle.green else discord.ButtonStyle.green
+                    view.clear_items()
+                    for x in buttons: view.add_item(x)
+
+        description = ' '.join([str(i) for i in hand]) + \
+                      '\n' + (handrank2.pay_current_hand(allpays=3, bet=bet) or 'you suck')
+
+        embed.description = description
+        embed.color = discord.Color.red() if (won := handrank2.pay_current_hand(allpays=1)) == 0 else discord.Color.green()
+
+        if won > 0:
+            stats.add(('money','wins','moneygained'),(bet*won,1,won-bet))
+        else:
+            stats.add(('loss','moneylost'),(1,bet))
+
+        await mtoedit.edit(embed=embed, view=None)
 
 async def setup(bot) -> None:
     await bot.add_cog(Games(bot))
