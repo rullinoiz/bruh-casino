@@ -32,8 +32,10 @@ class user:
     def read(cls, userid:Union[int, User, Member], stat:Union[str, Iterable[str]]) -> int:
         userid: int = userid if type(userid) is int else userid.id
         t = cls.ensure_existence(userid, True)
-        if type(stat) == tuple: stat = ','.join(stat)
-        return cls.c.execute(f'select {stat} from user where id = ?;',(userid,)).fetchone()[0]
+        if type(y := stat) is tuple: stat = ','.join(stat)
+        t = cls.c.execute(f'select {stat} from user where id = ?;',(userid,))
+        x = t.fetchone()
+        return x[0] if type(y) is not tuple else x
 
     @classmethod
     def read_from_stat(cls, stat) -> int:

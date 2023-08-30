@@ -75,7 +75,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
 
     codestyle: bool = getattr(e, 'codestyle', True)
     description = f'```{str(e)}```'
-    if codestyle: description += '\n\nplease ping me about this error because it was not intentional'
+    if codestyle: description += '\nplease ping me about this error because it was not intentional'
     if not codestyle: description = description[3:-3]
     await (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)(
         embed=discord.Embed(

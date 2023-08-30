@@ -1,19 +1,44 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 
 from modules.user_instance import user_instance
 from modules.user_sqlite import user as userdata
 from bot_config import bot_config as bcfg
 from modules.exceptions import RateError
+from typing import Optional
 
 import time
 
 class Economy(commands.Cog):
-    def __init__(self, bot) -> None:
-        self.bot = bot
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot: commands.Bot = bot
+        self.profile_ctx_menu = app_commands.ContextMenu(
+            name='View Profile',
+            callback=self.profile_ctx_menu_impl
+        )
+        self.bot.tree.add_command(self.profile_ctx_menu)
 
     async def cog_before_invoke(self, ctx:commands.Context) -> None:
         ctx.stats = user_instance(ctx)
+
+    async def cog_unload(self) -> None:
+        self.bot.tree.remove_command(self.profile_ctx_menu.name, type=self.profile_ctx_menu.type)
+
+    async def profile_ctx_menu_impl(self, ctx: discord.Interaction, user: discord.Member) -> None:
+        t = userdata.read(user,('money','lvl','bruh','wins','loss','moneygained','moneylost'))
+        (money,level,bruhs,wins,loss,moneygained,moneylost) = t
+
+        description = f'''{user.mention}\'s profile:
+        Money: {money}
+        Level: {level}
+        Bruhs: {bruhs}
+        Wins: {wins}
+        Losses: {loss}
+        Money Won: {moneygained}
+        Money Lost: {moneylost}'''
+
+        await ctx.response.send_message(embed=discord.Embed(description=description).set_footer(text=bcfg['footer']))
 
     @commands.hybrid_command(name='daily', aliases=['day'])
     async def daily(self, ctx: commands.Context) -> None:
@@ -23,9 +48,9 @@ class Economy(commands.Cog):
         footer = bcfg['footer']
         dailymoney = bcfg['dailymoney']
 
-        if stats.daily + 86400 > time.time():
+        if (t := (stats.daily + 86400)) > time.time():
             raise RateError(
-                msg=f'You have already claimed your daily reward. Please wait `{time.strftime("%H hr %M min %S sec", time.gmtime((stats.daily+86400)-time.time()))}` to claim it again.'
+                msg=f'You have already claimed your daily reward. You can claim it again <t:{t}:R>.'
             )
         else:
             stats.money += dailymoney
@@ -60,7 +85,7 @@ class Economy(commands.Cog):
         )
 
     @commands.hybrid_command(name='balance', aliases=['bal','bank'])
-    async def balance(self, ctx: commands.Context, user:discord.Member=None) -> None:
+    async def balance(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:
         """like a true capitalist"""
 
         footer = bcfg['footer']
@@ -69,15 +94,18 @@ class Economy(commands.Cog):
         description: str = f'{getattr(user, "mention", "You")} currently ha{"ve" if not user else "s"} {money} money.' \
             + (' Nice.' if '69' in str(money) else '')
 
-        await ctx.send(embed=discord.Embed(
+        send = getattr(t := getattr(ctx, 'send', getattr(ctx, 'response', None)), 'send_message', t)
+
+        await send(embed=discord.Embed(
                 title="Bank",
                 description=description,
                 color=discord.Color.orange(),
-            ).set_footer(text=footer)
+            ).set_footer(text=footer),
+            #ephemeral=getattr(ctx, 'from_ctx_menu', False)
         )
 
     @commands.hybrid_command()
-    async def bruh(self, ctx: commands.Context, user:discord.Member=None) -> None:
+    async def bruh(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:
         """how many bruhs"""
         bruhs: int = ctx.stats.bruh if not user else userdata.read(user, 'bruh')
         await ctx.send(f'{bruhs} bruhs have been had')
