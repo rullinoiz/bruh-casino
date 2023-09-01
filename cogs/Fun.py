@@ -1,5 +1,4 @@
 import asyncio
-
 import discord
 from discord.ext import commands
 import time
@@ -8,12 +7,10 @@ from typing import Optional
 import os
 import re
 import tempfile
-
 import modules.attorney as attorn
 
 from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
-
 from modules.server import server
 from modules.user_instance import user_instance
 from modules.checks import is_command_enabled, under_construction
@@ -39,7 +36,9 @@ bubble_gifs: list[str] = [
     'https://tenor.com/view/franzj-dancing-gif-26197176',
     'https://media.discordapp.net/attachments/881636430940635146/988560915119079424/used.gif',
     'https://media.discordapp.net/attachments/885710706350116915/954043954045796392/2A73A57F-94BD-4BEC-B833-2BF2B604018B.gif',
-    'https://tenor.com/view/nerding-speech-bubble-pepe-nerd-gif-26077806'
+    'https://tenor.com/view/nerding-speech-bubble-pepe-nerd-gif-26077806',
+    'https://media.discordapp.net/attachments/1061510650389606450/1092845311053004810/attachment-19.gif',
+
 ]
 
 gif_reply = {
@@ -68,6 +67,12 @@ class TrollAlreadyArmed(commands.CommandError):
         self.msg = msg
         self.codestyle = False
         self.ephemeral = True
+        super().__init__(msg)
+
+class SnipeFailed(commands.CommandError):
+    def __init__(self, msg: str = 'No deleted messages found for this channel!') -> None:
+        self.msg = msg
+        self.codestyle = False
         super().__init__(msg)
 
 class Fun(commands.Cog):
@@ -105,6 +110,12 @@ class Fun(commands.Cog):
         if server.read(msg.guild.id, 'i_saw_what_you_deleted'):
             await msg.channel.send('https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007')
 
+        msgafter: list[discord.Message] = [i async for i in msg.channel.history(limit=1, after=msg)]
+        for i in msgafter:
+            if i.author == self.bot.user and any([c in i.content for c in bubble_gifs]):
+                await i.delete()
+                return
+
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message) -> None:
         if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or bcfg['prefix'] in msg.content:
@@ -130,15 +141,16 @@ class Fun(commands.Cog):
         """epicly troll next messager in this channel for 200 money"""
         price: int = 200
 
-        if self.nexttroll.get(ctx.channel.id):
-            raise TrollAlreadyArmed()
         if ctx.stats.money < price:
             raise BrokeError(price, ctx.stats.money)
+        if self.nexttroll.get(ctx.channel.id):
+            raise TrollAlreadyArmed()
 
         ctx.stats.money -= price
         self.nexttroll[ctx.channel.id] = ctx.author.id
 
         await ctx.send('troll now armed', ephemeral=True)
+        print(f'troll armed in channel {ctx.channel} by {ctx.author}')
 
 
 
@@ -150,11 +162,7 @@ class Fun(commands.Cog):
                 description=msg.content
             ).set_author(name=msg.author.name,icon_url=msg.author.display_avatar.url).set_footer(text=bcfg['footer'])
         else:
-            embed = discord.Embed(
-                title='Snipe Failed',
-                description='No deleted messages found for this channel!',
-                color=discord.Color.red()
-            ).set_footer(text=bcfg['footer'])
+            raise SnipeFailed()
         
         await ctx.send(embed=embed,delete_after=None if msg else 7)
 
