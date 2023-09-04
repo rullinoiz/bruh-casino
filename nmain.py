@@ -125,9 +125,7 @@ async def on_message(message: discord.Message) -> None:
             if userdata.read(author.id,"lastmsg") < (time.time() - 30):
                 userdata.write(author.id,"lastmsg",time.time())
                 userdata.add(author.id,"exp",random(5,15))
-                
-                print("message counted")
-                
+
                 if userdata.read(author.id,"exp") >= (userdata.read(author.id,"lvl") * expincrement) + expstart:
                     userdata.write(author.id,"exp",userdata.read(author.id,"exp") - ((userdata.read(author.id,"lvl") * expincrement) + expstart))
                     userdata.add(author.id,"lvl",1)
@@ -165,8 +163,7 @@ async def _exec(ctx, *, script:str) -> None:
     prg = script
     
     result = eval(prg)
-    if inspect.isawaitable(result):
-        result = await result
+    if inspect.isawaitable(result): result = await result
     await message.add_reaction("✅")
     return
 
