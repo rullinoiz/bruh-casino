@@ -100,12 +100,14 @@ class Fun(commands.Cog):
         )
 
     async def cog_before_invoke(self, ctx: Context) -> None:
-        ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
+        ctx.sniped = None
+        if not isinstance(ctx.channel, discord.DMChannel):
+            ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
         ctx.stats = user_instance(ctx)
 
     @commands.Cog.listener()
     async def on_message_delete(self, msg: discord.Message) -> None:
-        if msg.author == self.bot.user or msg.is_system() or msg.author.bot: return
+        if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or msg.author.bot: return
         self.set_sniped(msg)
         if server.read(msg.guild.id, 'i_saw_what_you_deleted'):
             await msg.channel.send('https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007')
@@ -137,6 +139,7 @@ class Fun(commands.Cog):
 
     @commands.hybrid_command()
     @is_command_enabled(command='troll')
+    @commands.guild_only()
     async def troll(self, ctx: Context) -> None:
         """epicly troll next messager in this channel for 200 money"""
         price: int = 200
@@ -156,6 +159,7 @@ class Fun(commands.Cog):
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')
+    @commands.guild_only()
     async def snipe(self, ctx: Context) -> None:
         if msg := ctx.sniped:
             embed = discord.Embed(
@@ -212,6 +216,24 @@ class Fun(commands.Cog):
 
         logfile.close()
         os.remove(file)
+
+    @commands.command()
+    @under_construction()
+    async def please(self,
+                     ctx: Context,
+                     verb: str,
+                     pronoun: str,
+                     noun: Optional[str], *,
+                     adverbs: Optional[str]) -> None:
+        sentence: str = ''
+        sentence += f'consider {pronoun} '
+        if noun: sentence += f'{noun.removesuffix(",")} '
+        if not (adverbs and ' ' not in adverbs): sentence += f'{verb}ed '
+        if adverbs and not (noun and noun.endswith(',')): sentence += f'{adverbs.split(",")[0]} '
+        if adverbs and ' ' not in adverbs: sentence += f'{verb}ed'
+
+        await ctx.send(sentence.replace('@everyone','\\@everyone'))
+
 
     @commands.hybrid_command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
