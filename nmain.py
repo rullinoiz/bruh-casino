@@ -92,8 +92,12 @@ async def on_message(message: discord.Message) -> None:
         return
 
     if message.mention_everyone or client.user.mentioned_in(message):
-        reaction = discord.utils.get(message.guild.emojis,name="ping")
-        if reaction: await message.add_reaction(reaction)
+        try:
+            reaction = discord.utils.get(message.guild.emojis, name="ping")
+            if reaction: await message.add_reaction(reaction)
+        except AttributeError:
+            pass
+
         print("pinged lmao")
 
     if not message.content.startswith(prefix) and "bruh" in message.content.lower():
