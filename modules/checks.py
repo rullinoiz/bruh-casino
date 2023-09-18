@@ -1,3 +1,4 @@
+import math
 import discord
 from discord.ext.commands import Context, check, Converter, CommandError
 import modules.exceptions as e
@@ -35,9 +36,14 @@ def is_command_enabled(command:str=None):
         raise e.CommandNotEnabled(command or ctx.context)
     return check(predicate)
 
-class Money(Converter[int]):
+class Money(Converter):
     async def convert(self, ctx: Context, arg: str) -> int:
-        if user.read(ctx.author.id, 'money') < int(arg):
+        usermoney: int = user.read(ctx.author.id, 'money')
+        if type(arg) is str and (lower := arg.lower()):
+            if 'all' in lower: return usermoney
+            if 'half' in lower: return math.floor(usermoney / 2)
+            raise e.ArgumentValueError('Money must be an integer, "half", or "all"!')
+        if usermoney < int(arg):
             raise e.BrokeError(int(arg), user.read(ctx.author.id, 'money'))
         elif int(arg) <= 0:
             raise e.Uhhhhhh()
@@ -45,7 +51,7 @@ class Money(Converter[int]):
 
 class MoneyEven(Money):
     async def convert(self, ctx: Context, arg: str) -> int:
-        if super().convert(ctx, arg) and (arg % 2 == 0):
+        if (money := await super().convert(ctx, arg)) and (money % 2 == 0):
             return int(arg)
         else:
             raise e.ArgumentValueError(f'Argument for Money must be even! (received odd number {arg})')
