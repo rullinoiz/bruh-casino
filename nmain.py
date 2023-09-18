@@ -65,7 +65,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
     # TODO: Refactor for 3.11 (when it comes out)
     if f == commands.MissingRequiredArgument:
         e = ArgumentError(ctx.command)
-    elif f in [commands.CommandInvokeError, commands.HybridCommandError, discord.app_commands.CommandInvokeError]:
+    elif f in [commands.CommandInvokeError, commands.HybridCommandError, discord.app_commands.CommandInvokeError, discord.ext.commands.ConversionError]:
         e = e.original
         if type(e) in [commands.CommandInvokeError, commands.HybridCommandError, discord.app_commands.CommandInvokeError]:
             e = e.original
@@ -102,10 +102,7 @@ async def on_message(message: discord.Message) -> None:
 
     if not message.content.startswith(prefix) and "bruh" in message.content.lower():
         if server.read(message.guild.id,"bruhreact"):
-            await message.add_reaction("🇧")
-            await message.add_reaction("🇷")
-            await message.add_reaction("🇺")
-            await message.add_reaction("🇭")
+            for i in "🇧""🇷""🇺""🇭": await message.add_reaction(i)
 
         x = message.content.lower().count('bruh')
 
