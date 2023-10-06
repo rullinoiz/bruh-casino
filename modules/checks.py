@@ -39,10 +39,12 @@ def is_command_enabled(command:str=None):
 class Money(Converter):
     async def convert(self, ctx: Context, arg: str) -> int:
         usermoney: int = user.read(ctx.author.id, 'money')
-        if type(arg) is str and (lower := arg.lower()):
-            if 'all' in lower: return usermoney
-            if 'half' in lower: return math.floor(usermoney / 2)
-            raise e.ArgumentValueError('Money must be an integer, "half", or "all"!')
+        try: int(arg)
+        except ValueError:
+            if type(arg) is str and (lower := arg.lower()):
+                if 'all' in lower: return usermoney
+                if 'half' in lower: return math.floor(usermoney / 2)
+                raise e.ArgumentValueError('Money must be an integer, "half", or "all"!')
         if usermoney < int(arg):
             raise e.BrokeError(int(arg), user.read(ctx.author.id, 'money'))
         elif int(arg) <= 0:
