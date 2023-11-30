@@ -50,6 +50,7 @@ gif_reply = {
         'content': 'https://tenor.com/view/cat-cat-cat-cat-cat-cat-cat-cat-cat-cat-catc-atca-gif-25291329',
         'replytome': False
     },
+
     'kys': 'https://media.discordapp.net/attachments/886495693626294312/1136808274478506024/image.gif',
     'kill yourself': 'https://media.discordapp.net/attachments/886495693626294312/1136808274478506024/image.gif'
 }
@@ -128,7 +129,7 @@ class Fun(commands.Cog):
             if self.nexttroll.get(msg.channel.id): del self.nexttroll[msg.channel.id]
         else:
             for i in gif_reply.keys():
-                if i in msg.content:
+                if i.lower() in msg.content.lower():
                     await (msg.reply if (False if type(gif_reply[i]) is str else gif_reply[i]['replytome']) else msg.channel.send)(content=gif_reply[i] if type(gif_reply[i]) is str else gif_reply[i]['content'])
 
             if server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
@@ -154,8 +155,6 @@ class Fun(commands.Cog):
 
         await ctx.send('troll now armed', ephemeral=True)
         print(f'troll armed in channel {ctx.channel} by {ctx.author}')
-
-
 
     @commands.hybrid_command()
     @is_command_enabled(command='snipe')
@@ -223,14 +222,14 @@ class Fun(commands.Cog):
                      ctx: Context,
                      verb: str,
                      pronoun: str,
-                     noun: Optional[str], *,
-                     adverbs: Optional[str]) -> None:
+                     noun: Optional[str],
+                     *, adverbs: Optional[str]) -> None:
         sentence: str = ''
         sentence += f'consider {pronoun} '
-        if noun: sentence += f'{noun.removesuffix(",")} '
-        if not (adverbs and ' ' not in adverbs): sentence += f'{verb}ed '
+        if noun: sentence += f'{noun.removesuffix(",").replace("me", "you").replace("my", "your")} '
+        if not (adverbs and ' ' not in adverbs): sentence += f'{verb.removesuffix("e")}ed '
         if adverbs and not (noun and noun.endswith(',')): sentence += f'{adverbs.split(",")[0]} '
-        if adverbs and ' ' not in adverbs: sentence += f'{verb}ed'
+        if adverbs and ' ' not in adverbs: sentence += f'{verb.removesuffix("e")}ed'
 
         await ctx.send(sentence.replace('@everyone','\\@everyone'))
 
