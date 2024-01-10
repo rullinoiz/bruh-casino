@@ -45,7 +45,7 @@ class Economy(EconomyBruhCasinoCog):
 
         if (t := (stats.daily + 86400)) > time.time():
             raise RateError(
-                msg=f'You have already claimed your daily reward. You can claim it again <t:{t}:R>.'
+                msg=f'You have already claimed your daily reward. You can claim it again <t:{int(t)}:R>.'
             )
         else:
             stats.money += dailymoney
