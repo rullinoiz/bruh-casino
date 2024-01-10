@@ -1,4 +1,4 @@
-from discord.ext.commands import CommandError, Command
+from discord.ext.commands import Command
 from discord import Message
 from modules.BruhCasinoError import BruhCasinoError, EditableBruhCasinoError
 
@@ -38,8 +38,8 @@ class MultipleInstanceError(BruhCasinoError):
         super().__init__(f'Only 1 instance of a command can be running at a time! ({cmd.name})')
 
 class RateError(BruhCasinoError):
-    def __init__(self) -> None:
-        super().__init__('You have been rate limited! Try again later.')
+    def __init__(self, msg: str = 'You have been rate limited! Try again later.') -> None:
+        super().__init__(msg)
 
 class UnderConstruction(BruhCasinoError):
     def __init__(self) -> None:
@@ -50,8 +50,8 @@ class Uhhhhhh(BruhCasinoError):
         super().__init__('errrm..., you cant do that')
 
 class TooMuchData(BruhCasinoError):
-    def __init__(self) -> None:
-        super().__init__('Command received too much data, could not continue!')
+    def __init__(self, msg: str = 'Command received too much data, could not continue!') -> None:
+        super().__init__(msg)
 
 class CommandTimeoutError(EditableBruhCasinoError):
     def __init__(self,

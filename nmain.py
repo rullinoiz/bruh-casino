@@ -2,13 +2,15 @@
 import discord
 from discord.ext import commands,tasks
 import time
-from itertools import combinations,cycle
+from itertools import cycle
+# noinspection PyUnresolvedReferences
 from os import system as sys
 from random import randint as random
 from random import seed
 import bot_config
 from modules.server import server
 from modules.user_sqlite import user as userdata
+# noinspection PyUnresolvedReferences
 from modules.user_instance import user_instance
 from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
 from modules.checks import is_developer, is_developer_predicate
@@ -83,7 +85,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
             description=description,
             color=discord.Color.red(),
         ).set_footer(text=footer),
-        **({'view':None} if (toedit or type(e) == AccessDenied) and not getattr(e, 'ephemeral', False) else {'view':None,'ephemeral':True})
+        **({'view':None} if (toedit or isinstance(e, AccessDenied)) and not getattr(e, 'ephemeral', False) else {'view':None,'ephemeral':True})
     )
 
 @client.event
@@ -154,7 +156,9 @@ async def on_reaction_add(reaction:discord.Reaction, user: discord.User) -> None
 async def _exec(ctx, *, script:str) -> None:
     """literally a backdoor"""
 
+    # noinspection PyUnusedLocal
     author = ctx.author
+    # noinspection PyUnusedLocal
     channel = ctx.channel
     message = ctx.message
 
@@ -164,7 +168,7 @@ async def _exec(ctx, *, script:str) -> None:
     prg = script
     
     result = eval(prg)
-    if inspect.isawaitable(result): result = await result
+    if inspect.isawaitable(result): await result
     await message.add_reaction("✅")
     return
 

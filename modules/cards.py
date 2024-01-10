@@ -1,16 +1,16 @@
 import random
 import time
 import typing
-from typing import Union, overload
+from typing import Union
 from enum import Enum, auto
 
 random.seed(time.time())
 
 class Suit(Enum):
-    spades = auto()
-    clubs = auto()
-    diamonds = auto()
-    hearts = auto()
+    spades: auto = auto()
+    clubs: auto = auto()
+    diamonds: auto = auto()
+    hearts: auto = auto()
 
     def __str__(self) -> str:
         symbols = list('♤♧♢♡')
@@ -43,6 +43,7 @@ class CardValue(object):
         return f'CardValue({self.face_value})'
     
     def __eq__(self, __value: object) -> bool:
+        if not isinstance(__value, CardValue): return False
         return self.bj_face_value == __value.bj_face_value
     
     @property
@@ -51,7 +52,7 @@ class CardValue(object):
     
     @value.setter
     def value(self, v: Union[str, int]) -> None:
-        if type(v) == str:
+        if isinstance(v, str):
             self._value = CardValue.FACE.index(v.upper())
         elif v <= len(CardValue.FACE):
             self._value = v - 1
@@ -80,7 +81,7 @@ class CardValue(object):
 
 
 class Card(object):
-    def __init__(self, value:CardValue=CardValue('A'), suit:Suits=Suit(1)) -> None:
+    def __init__(self, value:CardValue=CardValue('A'), suit:Suit=Suit(1)) -> None:
         self._value: CardValue = value
         self._suit: Suit = suit
 
@@ -91,6 +92,7 @@ class Card(object):
         return f'Card({str(self._suit)}{str(self._value)})'
     
     def __eq__(self, __value: object) -> bool:
+        if not isinstance(__value, Card): return False
         return self.value.value == __value.value.value and self.suit == __value.suit
 
     @property
@@ -102,11 +104,11 @@ class Card(object):
         self._value = v
 
     @property
-    def suit(self) -> Suits:
+    def suit(self) -> Suit:
         return self._suit
     
     @suit.setter
-    def suit(self, v: Suits) -> None:
+    def suit(self, v: Suit) -> None:
         self._suit = v
 
     @property
@@ -146,7 +148,7 @@ class Deck(object):
         random.shuffle(self._deck)
 
     def draw(self, amount:int=1) -> Union[list[Card], Card]:
-        data = [self._deck.pop(0) for x in range(0,amount)]
+        data = [self._deck.pop(0) for _ in range(0,amount)]
         return data if len(data) > 1 else data[0]
     
     def list(self) -> list[Card]:
@@ -208,6 +210,7 @@ class BlackjackHand(Deck):
         elif a: t = f'{t}/{t2}'
 
         return t
+
 
 
 def shuffle():

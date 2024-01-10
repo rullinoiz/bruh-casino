@@ -4,13 +4,12 @@ from discord.ext import commands
 from bot_config import bot_config as bcfg
 
 from modules.checks import is_developer
+from modules.BruhCasinoCog import BruhCasinoCog
 
-class Administration(commands.Cog):
-    def __init__(self, bot) -> None:
-        self.bot = bot
-    
+class Administration(BruhCasinoCog):
+
     @commands.hybrid_command(name='slowmode', aliases=['sm','slow'])
-    @commands.check_any(commands.has_permissions(manage_channels=True),is_developer())
+    @commands.check_any(commands.has_permissions(manage_channels=True), is_developer())
     async def slowmode(self, ctx:commands.Context, delay:int) -> None:
         """self explanatory"""
 
@@ -24,8 +23,8 @@ class Administration(commands.Cog):
         #     return
         
         await ctx.channel.edit(slowmode_delay=delay)
-        await (ctx.message.add_reaction if not ctx.interaction else ctx.send)("✅")
-    
+        await self.send_or_react(ctx, "✅")
+
     @commands.command() # does not exit gracefully as app_command
     @commands.check_any(commands.has_permissions(manage_channels=True),is_developer())
     async def purge(self, ctx:commands.Context, num:int) -> None:
@@ -34,16 +33,14 @@ class Administration(commands.Cog):
 
         async with ctx.typing():
             await ctx.channel.purge(limit=num+1,check=lambda m: m != ctx.message)
-            await ctx.send(
-                embed=discord.Embed(
-                    title="Purge Complete",
-                    description="All {0} message(s) have been purged. Squeaky clean!".format(str(num)),
-                    color=discord.Color.green()
-                ).set_footer(text=footer),
-                delete_after=3.0
-            )
 
+        await ctx.send(
+            embed=discord.Embed(
+                title="Purge Complete",
+                description=f"All {str(num)} message(s) have been purged. Squeaky clean!",
+                color=discord.Color.green()
+            ).set_footer(text=footer),
+            delete_after=3.0
+        )
 
-async def setup(bot) -> None:
-    await bot.add_cog(Administration(bot))
-    print('Administration loaded')
+setup = Administration.setup

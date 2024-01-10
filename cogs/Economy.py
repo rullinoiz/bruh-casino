@@ -1,29 +1,23 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 
 from modules.user_instance import user_instance
 from modules.user_sqlite import user as userdata
-from bot_config import bot_config as bcfg
+from modules.BruhCasinoCog import EconomyBruhCasinoCog
 from modules.exceptions import RateError
 from typing import Optional
 
 import time
 
-class Economy(commands.Cog):
+class Economy(EconomyBruhCasinoCog):
+
     def __init__(self, bot: commands.Bot) -> None:
-        self.bot: commands.Bot = bot
-        self.profile_ctx_menu = app_commands.ContextMenu(
+        super().__init__(bot)
+        self.profile_ctx_menu = discord.app_commands.ContextMenu(
             name='View Profile',
             callback=self.profile_ctx_menu_impl
         )
         self.bot.tree.add_command(self.profile_ctx_menu)
-
-    async def cog_before_invoke(self, ctx:commands.Context) -> None:
-        ctx.stats = user_instance(ctx)
-
-    async def cog_unload(self) -> None:
-        self.bot.tree.remove_command(self.profile_ctx_menu.name, type=self.profile_ctx_menu.type)
 
     async def profile_ctx_menu_impl(self, ctx: discord.Interaction, user: discord.Member) -> None:
         t = userdata.read(user,('money','lvl','bruh','wins','loss','moneygained','moneylost'))
@@ -38,15 +32,16 @@ class Economy(commands.Cog):
         Money Won: {moneygained}
         Money Lost: {moneylost}'''
 
-        await ctx.response.send_message(embed=discord.Embed(description=description).set_footer(text=bcfg['footer']))
+        # noinspection PyUnresolvedReferences
+        await ctx.response.send_message(embed=discord.Embed(description=description).set_footer(text=self.bcfg['footer']))
 
     @commands.hybrid_command(name='daily', aliases=['day'])
     async def daily(self, ctx: commands.Context) -> None:
         """claim daily reward"""
         stats: user_instance = ctx.stats
 
-        footer = bcfg['footer']
-        dailymoney = bcfg['dailymoney']
+        footer = self.bcfg['footer']
+        dailymoney = self.bcfg['dailymoney']
 
         if (t := (stats.daily + 86400)) > time.time():
             raise RateError(
@@ -66,9 +61,9 @@ class Economy(commands.Cog):
     async def level(self, ctx: commands.Context, user:discord.Member=None) -> None:
         """check your level"""
 
-        footer = bcfg['footer']
-        expincrement = bcfg['expincrement']
-        expstart = bcfg['expstart']
+        footer = self.bcfg['footer']
+        expincrement = self.bcfg['expincrement']
+        expstart = self.bcfg['expstart']
 
         level: int = ctx.stats.lvl if not user else userdata.read(user, 'lvl')
         current_exp: int = ctx.stats.exp if not user else userdata.read(user, 'exp')
@@ -88,7 +83,7 @@ class Economy(commands.Cog):
     async def balance(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:
         """like a true capitalist"""
 
-        footer = bcfg['footer']
+        footer = self.bcfg['footer']
 
         money: int = int(ctx.stats.money) if not user else userdata.read(user, 'money')
         description: str = f'{getattr(user, "mention", "You")} currently ha{"ve" if not user else "s"} {money} money.' \
@@ -110,6 +105,4 @@ class Economy(commands.Cog):
         bruhs: int = ctx.stats.bruh if not user else userdata.read(user, 'bruh')
         await ctx.send(f'{bruhs} bruhs have been had')
 
-async def setup(bot) -> None:
-    await bot.add_cog(Economy(bot))
-    print('Economy loaded')
+setup = Economy.setup

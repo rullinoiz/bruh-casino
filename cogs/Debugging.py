@@ -8,16 +8,15 @@ import inspect
 import os
 
 from modules.user_sqlite import user as userdata
-from modules.server import server
-from modules.checks import is_developer, is_developer_predicate
+from modules.checks import is_developer
+from modules.BruhCasinoCog import BruhCasinoCog
 
 from bot_config import bot_config as bcfg
 
 import subprocess as subp
 
-class Debugging(commands.Cog):
-    def __init__(self, bot) -> None:
-        self.bot: discord.Client = bot
+
+class Debugging(BruhCasinoCog):
 
     @commands.hybrid_group(with_app_command=True)
     async def debug(self, ctx: commands.Context) -> None:
@@ -49,18 +48,17 @@ class Debugging(commands.Cog):
     @is_developer()
     async def reload(self, ctx: commands.Context, cog: str) -> None:
         """reloads a command module"""
-        message: discord.Message = ctx.message
         prg: str = f'self.bot.reload_extension(\'{cog}\')'
         
         result = eval(prg)
-        if inspect.isawaitable(result):
-            result = await result
+        if inspect.isawaitable(result): await result
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
-        await (message.add_reaction if not ctx.interaction else ctx.send)("✅")
+        await self.send_or_react(ctx, "✅")
 
     @reload.autocomplete('cog')
     async def reload_autocomplete(self, ctx: discord.Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+        self.UNUSED(ctx)
         data = []
         for filename in os.listdir('cogs'):
             if filename.endswith('.py'):
@@ -138,7 +136,4 @@ class Debugging(commands.Cog):
 
         await ctx.send('done', ephemeral=True)
 
-
-async def setup(bot) -> None:
-    await bot.add_cog(Debugging(bot))
-    print('Debugging loaded')
+setup = Debugging.setup

@@ -3,16 +3,15 @@ from discord.ext import commands
 
 from modules.server import server
 from modules.checks import is_developer
+from modules.BruhCasinoCog import BruhCasinoCog
 from bot_config import bot_config as bcfg
 
 import typing
 
-class Configuration(commands.Cog):
-    def __init__(self, bot) -> None:
-        self.bot = bot
+class Configuration(BruhCasinoCog):
 
     @staticmethod
-    def _to_bool(t) -> typing.Union[bool, None]:
+    def _to_bool(t: typing.AnyStr) -> typing.Union[bool, None]:
         print(t)
         try:
             return bool(int(t))
@@ -21,7 +20,7 @@ class Configuration(commands.Cog):
 
     @commands.hybrid_command(name='config', aliases=['cfg'])
     @commands.check_any(commands.has_permissions(manage_guild=True),is_developer())
-    async def _config(self, ctx:commands.Context, key:str=None, *, val:str=None) -> None:
+    async def _config(self, ctx: commands.Context, key: str = None, *, val: str = None) -> None:
         """we do a little configuration"""
         sv_data = bcfg['server_data_desc']
         if not key or (key not in sv_data):
@@ -56,13 +55,11 @@ class Configuration(commands.Cog):
             await ctx.send(f"successfully set `{key}` to `{val}`")
            
     @_config.autocomplete('key')
-    async def config_autocomplete_key(self, ctx:commands.Context, current:str) -> list[discord.app_commands.Choice]:
+    async def config_autocomplete_key(self, _: commands.Context, current: str) -> list[discord.app_commands.Choice]:
         data = []
         for i in bcfg['server_data_desc'].keys():
             if current in i:
-                data.append(discord.app_commands.Choice(name=i,value=i))
+                data.append(discord.app_commands.Choice(name=str.replace(i, current, f'**{current}**'), value=i))
         return data
 
-
-async def setup(bot) -> None:
-    await bot.add_cog(Configuration(bot))
+setup = Configuration.setup

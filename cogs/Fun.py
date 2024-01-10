@@ -142,8 +142,7 @@ class Fun(commands.Cog):
     @is_command_enabled(command='troll')
     @commands.guild_only()
     async def troll(self, ctx: Context) -> None:
-        """epicly troll next messager in this channel for 200 money"""
-        price: int = 200
+        f"""epicly troll next messager in this channel for {(price := 200)} money"""
 
         if ctx.stats.money < price:
             raise BrokeError(price, ctx.stats.money)

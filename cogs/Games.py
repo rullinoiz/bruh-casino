@@ -6,20 +6,15 @@ from modules.user_sqlite import user
 from modules.user_instance import user_instance
 from bot_config import bot_config as bcfg
 from modules.videopoker import HandAnalyzer
+from modules.BruhCasinoCog import EconomyBruhCasinoCog
 
 import modules.checks as checks
 import modules.exceptions as e
-import typing
 
 import asyncio
 from random import randint as random
 
-class Games(commands.Cog):
-    def __init__(self, bot:commands.Bot) -> None:
-        self.bot = bot
-
-    async def cog_before_invoke(self, ctx:commands.Context) -> None:
-        ctx.stats = user_instance(ctx)
+class Games(EconomyBruhCasinoCog):
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -106,7 +101,7 @@ class Games(commands.Cog):
             stats.money += bet
             return
         
-        bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label=f'Double Down (${bet})',disabled=False),Button(label=f'Split (${bet})',disabled=player[0].value!=player[1].value)]
+        bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label=f'Double Down (${bet})',disabled=False),Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value)]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
@@ -153,11 +148,8 @@ class Games(commands.Cog):
                     view=buttons
                 )
 
-                try:
-                    msg = await bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
-                    await msg.response.defer()
-                except asyncio.TimeoutError:
-                    raise e.CommandTimeoutError(time=20, msg=mtoedit)
+                msg = await self.wait_for_button(ctx, mtoedit, bt)
+                msg.response.defer()
 
                 # TODO: Refactor for 3.11 (when it comes out)
                 if msg.data['custom_id'] == bt[0].custom_id:  # hit
@@ -345,6 +337,8 @@ class Games(commands.Cog):
         )
 
         while not dead and not botdead:
+            msg = await self.wait_for_button(ctx, mtoedit, bt)
+            msg.response.defer()
             try:
                 msg = await bot.wait_for("interaction", check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                 await msg.response.defer()
@@ -470,11 +464,8 @@ class Games(commands.Cog):
             view=buttons
         )
 
-        try:
-            msg = await self.bot.wait_for("interaction",check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [b.custom_id for b in bt], timeout=10.0)
-            await msg.response.defer()
-        except asyncio.TimeoutError:
-            raise e.CommandTimeoutError(time=10, msg=mtoedit)
+        msg = await self.wait_for_button(ctx=ctx, mtoedit=mtoedit, buttons=bt, timeout=10)
+        await msg.response.defer()
 
         if bt[x].custom_id == msg.data['custom_id']:
             await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()).set_footer(text=footer),view=None)
@@ -509,7 +500,7 @@ class Games(commands.Cog):
         ]
         cashout_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654674624654/cashout.png'
         start_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654292934686/start.png'
-        jackpot_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621655274401802/jackpot.png'
+        jackpot_image: str = ''
 
         bt: list[Button] = [Button(label='Double'),Button(label='Cash Out',disabled=True)]
         buttons: View = View(timeout=10)
@@ -528,11 +519,8 @@ class Games(commands.Cog):
         )
 
         while not lost and not won:
-            try:
-                msg = await self.bot.wait_for('interaction',check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=10)
-                await msg.response.defer()
-            except asyncio.TimeoutError:
-                raise e.CommandTimeoutError(time=10, msg=mtoedit)
+            msg = await self.wait_for_button(ctx=ctx, mtoedit=mtoedit, buttons=bt, timeout=10)
+            await msg.response.defer()
             
             bt[1].disabled = False
             buttons.clear_items().add_item(bt[0]).add_item(bt[1])
@@ -585,6 +573,7 @@ class Games(commands.Cog):
 
         deck: cards.Deck = cards.Deck(decks=1)
         deck.shuffle()
+        deck.shuffle()
 
         hand: list[cards.Card] = deck.draw(5)
         handrank1 = HandAnalyzer(''.join([i.videopoker_value for i in hand]))
@@ -612,27 +601,22 @@ class Games(commands.Cog):
         ).set_footer(text=bcfg['footer'])
 
         firstiter: bool = True
-        dealpressed: bool = False
         mtoedit: discord.Message = await ctx.send(embed=embed, view=view)
 
         stats.money -= bet
 
-        while not dealpressed:
+        while True:
             if not firstiter:
                 await mtoedit.edit(view=view)
 
             firstiter = False
 
-            try:
-                msg = await self.bot.wait_for('interaction', check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in buttons], timeout=30)
-                await msg.response.defer()
-            except asyncio.TimeoutError:
-                raise e.CommandTimeoutError(time=30, msg=mtoedit)
+            msg = await self.wait_for_button(ctx=ctx, mtoedit=mtoedit, buttons=buttons, timeout=int(view.timeout))
+            await msg.response.defer()
 
             bt = msg.data['custom_id']
 
             if bt == buttons[5].custom_id: # deal
-                dealpressed = True
                 for i in range(0,4):
                     if buttons[i].style == discord.ButtonStyle.secondary:
                         hand[i] = deck.draw()
@@ -659,6 +643,7 @@ class Games(commands.Cog):
 
         await mtoedit.edit(embed=embed, view=None)
 
-async def setup(bot) -> None:
-    await bot.add_cog(Games(bot))
-    print('Games loaded')
+# async def setup(bot) -> None:
+#     await bot.add_cog(Games(bot))
+#     print('Games loaded')
+setup = Games.setup

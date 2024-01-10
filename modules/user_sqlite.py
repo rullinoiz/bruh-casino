@@ -2,14 +2,15 @@ import sqlite3 as sq
 
 from discord.abc import User
 from discord import Member
-from typing import Union, Any, Iterable
+from typing import Union, Any, Sequence
 
 class user:
     s: sq.Connection = sq.connect(r'user.db')
     c: sq.Cursor = s.cursor()
 
     @classmethod
-    def ensure_existence(cls, userid:int, add_new:bool=False) -> bool:
+    def ensure_existence(cls, userid:Union[int, User, Member], add_new:bool=False) -> bool:
+        userid: int = userid if type(userid) is int else userid.id
         if cls.c.execute('select id from user where id = ?;',(userid,)).fetchone() is None:
             if add_new:
                 cls.c.execute('insert into user(id) values(?);',(userid,))
@@ -20,7 +21,7 @@ class user:
     @classmethod
     def write(cls, userid:Union[int, User, Member], stat:str, content:Any) -> None:
         userid:int = userid if type(userid) is int else userid.id
-        t = cls.ensure_existence(userid, True)
+        cls.ensure_existence(userid, True)
         cls.c.execute(f'update user set {stat} = ? where id = ?;',(content,userid))
         cls.s.commit()
 
@@ -29,9 +30,9 @@ class user:
         cls.write(stat.id, stat.stat, content)
 
     @classmethod
-    def read(cls, userid:Union[int, User, Member], stat:Union[str, Iterable[str]]) -> int:
+    def read(cls, userid: Union[int, User, Member], stat: Union[str, Sequence[str]]) -> int:
         userid: int = userid if type(userid) is int else userid.id
-        t = cls.ensure_existence(userid, True)
+        cls.ensure_existence(userid, True)
         if type(y := stat) is tuple: stat = ','.join(stat)
         t = cls.c.execute(f'select {stat} from user where id = ?;',(userid,))
         x = t.fetchone()
@@ -42,9 +43,9 @@ class user:
         return cls.read(stat.id, stat.stat)
 
     @classmethod
-    def add(cls, userid:Union[int, User, Member], stat:Union[str, Iterable[str]], value:Union[int, Iterable[int]]) -> None:
+    def add(cls, userid:Union[int, User, Member], stat:Union[str, Sequence[str]], value:Union[int, Sequence[int]]) -> None:
         userid:int = userid if type(userid) is int else userid.id
-        t = cls.ensure_existence(userid, True)
+        cls.ensure_existence(userid, True)
         if type(stat) is str:
             cls.c.execute(f'update user set {stat} = {stat} {("+" if value > 0 else "-")} ? where id = ?;', (abs(value), userid))
             cls.s.commit()
