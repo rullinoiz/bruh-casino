@@ -149,7 +149,7 @@ class Games(EconomyBruhCasinoCog):
                 )
 
                 msg = await self.wait_for_button(ctx, mtoedit, bt)
-                msg.response.defer()
+                await msg.response.defer()
 
                 # TODO: Refactor for 3.11 (when it comes out)
                 if msg.data['custom_id'] == bt[0].custom_id:  # hit
@@ -285,7 +285,7 @@ class Games(EconomyBruhCasinoCog):
 
             try:
                 msg = await self.bot.wait_for('interaction', check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
-                msg.response.defer()
+                await msg.response.defer()
             except asyncio.TimeoutError:
                 pass
 
@@ -338,7 +338,7 @@ class Games(EconomyBruhCasinoCog):
 
         while not dead and not botdead:
             msg = await self.wait_for_button(ctx, mtoedit, bt)
-            msg.response.defer()
+            await msg.response.defer()
             try:
                 msg = await bot.wait_for("interaction", check=lambda i: i.user.id == author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
                 await msg.response.defer()
