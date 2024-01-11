@@ -20,7 +20,7 @@ class user:
 
     @classmethod
     def write(cls, userid:Union[int, User, Member], stat:str, content:Any) -> None:
-        userid:int = userid if type(userid) is int else userid.id
+        userid:int = getattr(userid, 'id', userid)
         cls.ensure_existence(userid, True)
         cls.c.execute(f'update user set {stat} = ? where id = ?;',(content,userid))
         cls.s.commit()
@@ -31,7 +31,7 @@ class user:
 
     @classmethod
     def read(cls, userid: Union[int, User, Member], stat: Union[str, Sequence[str]]) -> int:
-        userid: int = userid if type(userid) is int else userid.id
+        userid: int = getattr(userid, 'id', userid)
         cls.ensure_existence(userid, True)
         if type(y := stat) is tuple: stat = ','.join(stat)
         t = cls.c.execute(f'select {stat} from user where id = ?;',(userid,))
@@ -44,7 +44,7 @@ class user:
 
     @classmethod
     def add(cls, userid:Union[int, User, Member], stat:Union[str, Sequence[str]], value:Union[int, Sequence[int]]) -> None:
-        userid:int = userid if type(userid) is int else userid.id
+        userid:int = getattr(userid, 'id', userid)
         cls.ensure_existence(userid, True)
         if type(stat) is str:
             cls.c.execute(f'update user set {stat} = {stat} {("+" if value > 0 else "-")} ? where id = ?;', (abs(value), userid))
@@ -61,7 +61,7 @@ class user:
 
     @classmethod
     def subtract(cls, userid:Union[int, User, Member], stat:str, value:int) -> None:
-        userid: int = userid if type(userid) is int else userid.id
+        userid: int = getattr(userid, 'id', userid)
         cls.ensure_existence(userid, True)
         cls.c.execute(f'update user set {stat} = {stat} - ? where id = ?', (abs(value), userid))
         cls.s.commit()
@@ -69,7 +69,6 @@ class user:
     @classmethod
     def subtract_from_stat(cls, stat, val: int) -> None:
         cls.subtract(stat.id, stat.stat, val)
-
 
     @staticmethod
     def has_role(member:Member, roleid:int) -> bool:

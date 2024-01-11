@@ -13,7 +13,7 @@ def is_developer(action:str=None):
         return is_developer_predicate(ctx, e.AccessDenied(action or ctx.invoked_with))
     return check(predicate)
 
-def is_developer_predicate(ctx: Union[Context, discord.User], raise_if: CommandError = None) -> bool:
+def is_developer_predicate(ctx: Union[Context, discord.User, discord.Member], raise_if: CommandError = None) -> bool:
     if type(ctx) is Context:
         if not ctx.author.id == developer_id:
             if raise_if:
