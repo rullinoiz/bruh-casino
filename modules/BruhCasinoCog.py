@@ -1,7 +1,7 @@
 import asyncio
 
 import discord
-from typing import Awaitable, TypeVar
+from typing import Awaitable, TypeVar, Coroutine, Any
 from discord.ext import commands
 
 from modules.user_instance import user_instance
@@ -31,9 +31,9 @@ class BruhCasinoCog(commands.Cog):
     @staticmethod
     def UNUSED(x: _T) -> _T: return x
 
-    async def wait_for_button(self, ctx: commands.Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> discord.Interaction[discord.Client]:
+    def wait_for_button(self, ctx: commands.Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> Coroutine[Any, Any, discord.Interaction[discord.Client]]:
         try:
-            return await self.bot.wait_for("interaction", check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in buttons], timeout=timeout)
+            return self.bot.wait_for("interaction", check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in buttons], timeout=timeout)
         except asyncio.TimeoutError:
             raise CommandTimeoutError(time=timeout, msg=mtoedit)
 
