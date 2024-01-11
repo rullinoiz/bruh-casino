@@ -1,6 +1,7 @@
 out
 botlogs.txt
 **/.DS_Store
+**/._*
 user.db
 serverdata.txt
 **/__pycache__/
@@ -8,3 +9,4 @@ serverdata.txt
 **/'
 .idea/
 **/output.mp4
+**/venv/
