@@ -20,9 +20,7 @@ class Games(EconomyBruhCasinoCog):
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def blackjack(self, ctx: commands.Context, bet: checks.Money) -> None:
         """blackjack gaming"""
-        bot = self.bot
-
-        author: discord.Member = ctx.author
+        bet: int = int(bet)
         stats: user_instance = ctx.stats
 
         footer = bcfg['footer']
@@ -101,7 +99,11 @@ class Games(EconomyBruhCasinoCog):
             stats.money += bet
             return
         
-        bt: list[Button] = [Button(label='Hit'),Button(label='Stand'),Button(label=f'Double Down (${bet})',disabled=False),Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value)]
+        bt: list[Button] = [
+            Button(label='Hit'),
+            Button(label='Stand'),
+            Button(label=f'Double Down (${bet})',disabled=False),
+            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value)]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
@@ -129,10 +131,10 @@ class Games(EconomyBruhCasinoCog):
                 val.append('{0}{1}{0}'.format('__' if i == current and len(hands) != 1 else ('~~' if v.busted else ''), str(v)))
             return '\n'.join(val)
 
-        for i, playerhand in enumerate(player,start=0):
+        for i, playerhand in enumerate(player, start=0):
             stay: bool = False
             bt[2].disabled = stats.read('money') < bet
-            bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money') > bet
+            bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money') < bet
             while not (stay or playerhand.busted or playerhand.is_blackjack()):
                 embed = mtoedit.embeds[0]
                 buttons.clear_items()
@@ -643,7 +645,4 @@ class Games(EconomyBruhCasinoCog):
 
         await mtoedit.edit(embed=embed, view=None)
 
-# async def setup(bot) -> None:
-#     await bot.add_cog(Games(bot))
-#     print('Games loaded')
 setup = Games.setup
