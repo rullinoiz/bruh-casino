@@ -5,12 +5,13 @@ bot_config = {
     "prefix":"+",
     "footer":"© rullinoiz - {0}".format(subprocess.run(['git','log','--pretty=format:"commit: %h"','-1'], capture_output=True, text=True).stdout[1:-1]),
     "version":"40%",
-    "datapath":"userdata.txt",
+    "datapath":"user.db",
     "serverpath":"serverdata.txt",
     "botlogs":"botlogs.txt",
     "dailymoney":500,
     "expincrement":50,
     "expstart":100,
+    "moneyexp":20,
     "server_data_desc":{
         "levelmsg": {
             "desc": "Set the level up message. Comes with variables {user} and {level}.",

@@ -1,37 +1,37 @@
 # -*- coding: utf-8 -*-
-import discord
-from discord.ext import commands,tasks
+
+import asyncio
+import inspect
+import logging
+import os
 import time
+import traceback
 from itertools import cycle
 # noinspection PyUnresolvedReferences
 from os import system as sys
 from random import randint as random
 from random import seed
-import bot_config
+
+import discord
+from discord.ext import commands, tasks
+
+from bot_config import bot_config as bcfg
+from modules.BruhCasinoError import BruhCasinoError
+from modules.checks import is_developer, is_developer_predicate
+from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
 from modules.server import server
-from modules.user_sqlite import user as userdata
 # noinspection PyUnresolvedReferences
 from modules.user_instance import user_instance
-from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
-from modules.checks import is_developer, is_developer_predicate
-import os
-import logging
-import inspect
-import traceback
-
-import asyncio
+from modules.user_sqlite import user as userdata
 
 #to make sure random is pretty random
 seed(time.time())
 
 #epic settings
-prefix = bot_config.bot_config["prefix"]
-footer = bot_config.bot_config["footer"]
-expincrement = bot_config.bot_config["expincrement"]
-expstart = bot_config.bot_config["expstart"]
-
-#secret wolfram settings (secret!! :flushed:)
-app_id = "GTVE5T-93GHW98RLT"
+prefix = bcfg["prefix"]
+footer = bcfg["footer"]
+expincrement = bcfg["expincrement"]
+expstart = bcfg["expstart"]
 
 discord.utils.setup_logging(level=logging.WARNING)
 
@@ -50,20 +50,10 @@ async def on_ready() -> None:
     print('READY.')
     cycle_status.start()
 
-# @client.event
-# async def on_error(event, *args, **kwargs) -> None:
-#     print(args)
-#     print(event)
-#     await args[0].channel.send(embed=discord.Embed(
-#             title=type(e.original).__name__,
-#             description=f'Command "{e.command}" returned an error:```{str(e.original)}```',
-#             color=discord.Color.red()
-#         ).set_footer(text=footer)
-#     )
-
 @client.event
 async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> None:
     f = type(e)
+    description: str
     # TODO: Refactor for 3.11 (when it comes out)
     if f == commands.MissingRequiredArgument:
         e = ArgumentError(ctx.command)
@@ -77,7 +67,7 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
 
     codestyle: bool = getattr(e, 'codestyle', True)
     description = f'```{str(e)}```'
-    if codestyle: description += '\nplease ping me about this error because it was not intentional'
+    if not isinstance(e, BruhCasinoError): description += '\nplease ping me about this error because it was not intentional'
     if not codestyle: description = description[3:-3]
     await (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)(
         embed=discord.Embed(
@@ -121,28 +111,29 @@ async def on_message(message: discord.Message) -> None:
         args = base
         channel = message.channel
         print("command received: " + str(prefix) + str(command) + " " + str(args) + " in channel {0}".format(channel))
-    else:
-        channel = message.channel
-        author = message.author
-        if not author.bot:
-            if userdata.read(author.id,"lastmsg") < (time.time() - 30):
-                userdata.write(author.id,"lastmsg",time.time())
-                userdata.add(author.id,"exp",random(5,15))
 
-                if userdata.read(author.id,"exp") >= (userdata.read(author.id,"lvl") * expincrement) + expstart:
-                    userdata.write(author.id,"exp",userdata.read(author.id,"exp") - ((userdata.read(author.id,"lvl") * expincrement) + expstart))
-                    userdata.add(author.id,"lvl",1)
-                    
-                    print("level up")
-                    if server.read(channel.guild.id,'levelup_announce'):
-                        await channel.send(
-                            embed=discord.Embed(
-                                title="Level Up!",
-                                description=server.read(channel.guild.id,"levelmsg").replace("{user}","{0}".format(author.mention)).replace("{level}",str(userdata.read(author.id,"lvl"))) + "\n\n Check your next goal with `{0}level`".format(prefix),
-                                color=discord.Color.green(),
-                            ).set_footer(text=footer),
-                            delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
-                        )
+    channel = message.channel
+    author: user_instance = user_instance(message.author.id)
+    if not message.author.bot:
+        if author.lastmsg < (time.time() - 30):
+            author.lastmsg = time.time()
+            author.exp += random(5, 15)
+            author.money += bcfg["moneyexp"]
+
+            if author.exp >= (author.lvl * expincrement) + expstart:
+                userdata.c.execute(
+                    "update user set exp = exp - (lvl * ?) + ?, lvl = lvl + 1, money = money + (lvl * 10) where id = ?",
+                    (expincrement, expstart, author.id))
+                print("level up")
+                if server.read(channel.guild.id,'levelup_announce'):
+                    await channel.send(
+                        embed=discord.Embed(
+                            title="Level Up!",
+                            description=server.read(channel.guild.id,"levelmsg").replace("{user}","{0}".format(message.author.mention)).replace("{level}",str(author.lvl)) + "\n\n Check your next goal with `{0}level`".format(prefix),
+                            color=discord.Color.green(),
+                        ).set_footer(text=footer),
+                        delete_after=None if server.read(channel.guild.id,'lingering_levelup') else 10
+                    )
 
 @client.event
 async def on_reaction_add(reaction:discord.Reaction, user: discord.User) -> None:
