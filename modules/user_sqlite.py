@@ -4,8 +4,10 @@ from discord.abc import User
 from discord import Member
 from typing import Union, Any, Sequence
 
+from bot_config import bot_config as bcfg
+
 class user:
-    s: sq.Connection = sq.connect(r'user.db')
+    s: sq.Connection = sq.connect(bcfg.get("datapath"))
     c: sq.Cursor = s.cursor()
 
     @classmethod

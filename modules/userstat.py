@@ -26,6 +26,12 @@ class UserStat:
     def __gt__(self, o: int) -> bool:
         return user.read_from_stat(self) > o
 
+    def __ge__(self, o: int) -> bool:
+        return user.read_from_stat(self) >= o
+
+    def __le__(self, o: int) -> bool:
+        return user.read_from_stat(self) <= o
+
     def __int__(self) -> int:
         return int(user.read_from_stat(self))
 
