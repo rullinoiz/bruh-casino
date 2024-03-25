@@ -15,6 +15,7 @@ from modules.server import server
 from modules.user_instance import user_instance
 from modules.checks import is_command_enabled, under_construction
 from modules.exceptions import BrokeError
+from modules.BruhCasinoError import BruhCasinoError
 
 random.seed(time.time_ns())
 
@@ -63,14 +64,14 @@ class AttorneyComment:
         self.body = re.sub(self.pattern, '[link]', message.content)
         self.score = 0
 
-class TrollAlreadyArmed(commands.CommandError):
+class TrollAlreadyArmed(BruhCasinoError):
     def __init__(self, msg: str = 'troll already armed for this channel') -> None:
         self.msg = msg
         self.codestyle = False
         self.ephemeral = True
         super().__init__(msg)
 
-class SnipeFailed(commands.CommandError):
+class SnipeFailed(BruhCasinoError):
     def __init__(self, msg: str = 'No deleted messages found for this channel!') -> None:
         self.msg = msg
         self.codestyle = False
@@ -230,7 +231,7 @@ class Fun(commands.Cog):
         if adverbs and not (noun and noun.endswith(',')): sentence += f'{adverbs.split(",")[0]} '
         if adverbs and ' ' not in adverbs: sentence += f'{verb.removesuffix("e")}ed'
 
-        await ctx.send(sentence.replace('@everyone','\\@everyone'))
+        await ctx.send(sentence.replace('@everyone',r'\@everyone'))
 
 
     @commands.hybrid_command()

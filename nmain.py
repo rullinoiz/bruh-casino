@@ -39,7 +39,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents)
 
-statuses = cycle([f'{prefix}bruh',f'{prefix}daily','Raid Shadow Legends','cat compilation #132'])
+statuses = cycle([f'{prefix}bruh',f'{prefix}daily','Raid Shadow Legends','cat compilation #132', 'Quake Live'])
 
 @tasks.loop(seconds=300)
 async def cycle_status() -> None:

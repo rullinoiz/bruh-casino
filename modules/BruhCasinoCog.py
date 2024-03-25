@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from modules.user_instance import user_instance
 from modules.exceptions import CommandTimeoutError
+from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from bot_config import bot_config as bcfg
 
 _T = TypeVar('_T')
@@ -31,9 +32,23 @@ class BruhCasinoCog(commands.Cog):
     @staticmethod
     def UNUSED(x: _T) -> _T: return x
 
-    def wait_for_button(self, ctx: commands.Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> Coroutine[Any, Any, discord.Interaction[discord.Client]]:
+    async def wait_for_button(self, ctx: commands.Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> discord.Interaction:
+        def wait_for_button_check(i: discord.Interaction) -> bool:
+            if i.type != discord.InteractionType.component or i.data['custom_id'] not in [x.custom_id for x in buttons]:
+                return False
+
+            if not (i.user.id == ctx.author.id and i.type == discord.InteractionType.component):
+                response = i.response
+                asyncio.create_task(response.send_message(embed=BruhCasinoEmbed(
+                    title="HandsOffError",
+                    description="this isn't yours bruv",
+                    color=discord.Color.red()
+                ), ephemeral=True))
+                return False
+            else: return True
+
         try:
-            return self.bot.wait_for("interaction", check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in buttons], timeout=timeout)
+            return await self.bot.wait_for("interaction", check=wait_for_button_check, timeout=timeout)
         except asyncio.TimeoutError:
             raise CommandTimeoutError(time=timeout, msg=mtoedit)
 

@@ -7,6 +7,8 @@ from modules.user_instance import user_instance
 from bot_config import bot_config as bcfg
 from modules.videopoker import HandAnalyzer
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
+from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from typing import Callable
 
 import modules.checks as checks
 import modules.exceptions as e
@@ -27,20 +29,6 @@ class Games(EconomyBruhCasinoCog):
 
         deck: cards.Deck = cards.Deck(decks=2)
         deck.shuffle()
-        
-        # def cardsToStr(e: list[cards.Card], current:int=0) -> str:
-        #     # t = ""
-        #     # for i in e:
-        #     #     t += i[0] + " "
-        #
-        #     if type(e) == list[cards.Card]:
-        #         return ' '.join([str(i) for i in e])
-        #     else:
-        #         val = []
-        #         for i,v in enumerate(e,start=1):
-        #             val.append(' '.join([('__{0}__' if i == current else ('{0}' if aceToInt(cardsToVal(v)) <= 21 else '~~{0}~~')).format(str(x)) for x in v]))
-        #
-        #         return '\n'.join(val)
 
         stats.money -= bet
 
@@ -48,7 +36,7 @@ class Games(EconomyBruhCasinoCog):
         player: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
 
         if player.is_blackjack() and not dealerhand.is_blackjack():
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=BruhCasinoEmbed(
                     title="Blackjack",
                     description="You have blackjack! You won {0} money.".format(bet*2),
                     color=discord.Color.green()
@@ -58,14 +46,12 @@ class Games(EconomyBruhCasinoCog):
                 ).add_field(
                     name="You ({0})".format(21),
                     value=str(player)
-                ).set_footer(
-                    text=footer
                 )
             )
             stats.add(('money','moneygained','wins'),(bet*3,bet*2,1))
             return
         elif dealerhand.is_blackjack() and not player.is_blackjack():
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=BruhCasinoEmbed(
                     title="Blackjack",
                     description="Dealer has blackjack! You lost {0} money.".format(bet),
                     color=discord.Color.red()
@@ -75,14 +61,12 @@ class Games(EconomyBruhCasinoCog):
                 ).add_field(
                     name="You ({0})".format(player.toVal()),
                     value=str(player)
-                ).set_footer(
-                    text=footer
                 )
             )
             stats.add(('moneylost','loss'),(bet,1))
             return
         elif player.is_blackjack() and dealerhand.is_blackjack():
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=BruhCasinoEmbed(
                     title="Blackjack",
                     description="It's a tie! No one wins.",
                     color=discord.Color.red()
@@ -92,8 +76,6 @@ class Games(EconomyBruhCasinoCog):
                 ).add_field(
                     name="You ({0})".format(21),
                     value=str(player)
-                ).set_footer(
-                    text=footer
                 )
             )
             stats.money += bet
@@ -103,11 +85,11 @@ class Games(EconomyBruhCasinoCog):
             Button(label='Hit'),
             Button(label='Stand'),
             Button(label=f'Double Down (${bet})',disabled=False),
-            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value)]
+            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value or stats.money < bet)]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
-        mtoedit: discord.Message = await ctx.send(embed=discord.Embed(
+        mtoedit: discord.Message = await ctx.send(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description="Click \"Hit\", \"Stand\", \"Double Down\", or \"Split\" within 20 seconds.",
                 color=discord.Color.orange()
@@ -117,8 +99,6 @@ class Games(EconomyBruhCasinoCog):
             ).add_field(
                 name="You ({0})".format(player.toVal()),
                 value=str(player)
-            ).set_footer(
-                text=footer
             ),
             view=buttons
         )
@@ -134,7 +114,7 @@ class Games(EconomyBruhCasinoCog):
         for i, playerhand in enumerate(player, start=0):
             stay: bool = False
             bt[2].disabled = stats.read('money') < bet
-            bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money') < bet
+            bt[3].disabled = playerhand[0].value != playerhand[1].value or stats.read('money') < bet
             while not (stay or playerhand.busted or playerhand.is_blackjack()):
                 embed = mtoedit.embeds[0]
                 buttons.clear_items()
@@ -458,11 +438,11 @@ class Games(EconomyBruhCasinoCog):
         bt = [Button(label='Heads'),Button(label='Tails')]
         buttons = View(timeout=10).add_item(bt[0]).add_item(bt[1])
 
-        mtoedit = await ctx.send(embed=discord.Embed(
+        mtoedit = await ctx.send(embed=BruhCasinoEmbed(
                 title="Coin Flip",
                 description="Respond with \"Heads\" or \"Tails\" in 10 seconds",
                 color=discord.Color.orange()
-            ).set_footer(text=footer),
+            ),
             view=buttons
         )
 
@@ -470,11 +450,11 @@ class Games(EconomyBruhCasinoCog):
         await msg.response.defer()
 
         if bt[x].custom_id == msg.data['custom_id']:
-            await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()).set_footer(text=footer),view=None)
+            await mtoedit.edit(embed=BruhCasinoEmbed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()),view=None)
             user.add(author.id,('moneygained','wins','money'),(bet,1,bet))
             print("won")
         else:
-            await mtoedit.edit(embed=discord.Embed(title="Coin Flip",description="You lost {0} money!".format(bet),color=discord.Color.red()).set_footer(text=footer),view=None)
+            await mtoedit.edit(embed=BruhCasinoEmbed(title="Coin Flip",description="You lost {0} money!".format(bet),color=discord.Color.red()),view=None)
             user.add(author.id,('moneylost','loss','money'),(bet,1,-bet))
             print("loss")
 
@@ -512,11 +492,11 @@ class Games(EconomyBruhCasinoCog):
         lost = False
         won = False
         
-        mtoedit = await ctx.send(embed=discord.Embed(
+        mtoedit = await ctx.send(embed=BruhCasinoEmbed(
                 title="Double or Nothing",
                 description='Current Cash Out: $0',
                 color=discord.Color.orange()
-            ).set_footer(text=bcfg['footer']).set_image(url=start_image),
+            ).set_image(url=start_image),
             view=buttons
         )
 
@@ -579,7 +559,7 @@ class Games(EconomyBruhCasinoCog):
 
         hand: list[cards.Card] = deck.draw(5)
         handrank1 = HandAnalyzer(''.join([i.videopoker_value for i in hand]))
-        handrank2: HandAnalyzer = None
+        handrank2: HandAnalyzer
 
         buttons: list[Button] = ([Button(label=str(i)) for i in hand] +
                                  [Button(label='Deal', style=discord.ButtonStyle.blurple)])
@@ -596,11 +576,11 @@ class Games(EconomyBruhCasinoCog):
         description: str = 'green to keep\n' + ' '.join([str(i) for i in hand]) + \
                            '\n' + handrank1.pay_current_hand(allpays=3, bet=bet)
 
-        embed: discord.Embed = discord.Embed(
+        embed: discord.Embed = BruhCasinoEmbed(
             title='Video Poker',
             description=description,
             color=discord.Color.orange()
-        ).set_footer(text=bcfg['footer'])
+        )
 
         firstiter: bool = True
         mtoedit: discord.Message = await ctx.send(embed=embed, view=view)
@@ -645,4 +625,4 @@ class Games(EconomyBruhCasinoCog):
 
         await mtoedit.edit(embed=embed, view=None)
 
-setup = Games.setup
+setup: Callable = Games.setup
