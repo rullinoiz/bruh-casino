@@ -48,6 +48,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         date = data.get('upload_date')
         self.upload_date = date[6:8] + '.' + date[4:6] + '.' + date[0:4]
         self.title = data.get('title')
+        print(self.title)
         self.thumbnail = data.get('thumbnail')
         self.description = data.get('description')
         self.duration = int(data.get('duration'))
@@ -67,8 +68,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False)
         data = await loop.run_in_executor(None, partial)
-
-        print(1)
 
         if data is None:
             raise YTDLError('Couldn\'t find anything that matches `{}`'.format(search))

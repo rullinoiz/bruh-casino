@@ -198,7 +198,7 @@ class VoiceState:
 
                 else:
                     try:
-                        async with timeout(30):  # not 3 minutes
+                        async with timeout(60):  # not 3 minutes
                             is_playing = len(self.songs) != 0 and self.current is not None
                             self.current = await self.songs.get()
                     except Exception as e:

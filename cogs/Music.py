@@ -288,7 +288,7 @@ class Music(BruhCasinoCog):
                 await ctx.voice_state.songs.put(song)
 
             await asyncio.sleep(1)
-            await ctx.send(content=f'queued {len(source)} songs',embed=None if is_playing else ctx.voice_state.current.create_embed())
+            await ctx.send(content=f'queued {len(source)} songs')
             return
 
         song = Song(source)
