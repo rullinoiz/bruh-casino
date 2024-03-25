@@ -1,6 +1,9 @@
 from modules.user_sqlite import user
 
-class UserStat:
+class UserStat(object):
+
+    __slots__ = ('id', 'stat')
+
     def __init__(self, userid:int, stat:str) -> None:
         self.id: int = userid
         self.stat: str = stat

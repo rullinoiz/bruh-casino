@@ -3,7 +3,9 @@ from modules.user_sqlite import user
 from modules.userstat import UserStat
 from typing import Union, Sequence
 
-class user_instance:
+class user_instance(object):
+    __slots__ = ('id',)
+
     def __init__(self, ctx: Union[discord.ext.commands.Context, int]) -> None:
         self.id: int = ctx if isinstance(ctx, int) else ctx.author.id
 
@@ -16,9 +18,11 @@ class user_instance:
     def __getattr__(self, attr:str) -> UserStat:
         return UserStat(self.id, attr)
 
-    def __setattr__(self, attr: str, value) -> None:
-        if attr == 'id':
-            super().__setattr__(attr, value)
+    # def __setattr__(self, attr: str, value) -> None:
+    #     if attr == 'id':
+    #         super().__setattr__(attr, value)
+    #         return
+    #     return user.write(self.id, attr, value)
 
     def ensure_existence(self, add_new: bool=False) -> bool:
         return user.ensure_existence(self.id, add_new)

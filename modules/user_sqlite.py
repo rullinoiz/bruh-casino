@@ -6,7 +6,7 @@ from typing import Union, Any, Sequence
 
 from bot_config import bot_config as bcfg
 
-class user:
+class user(object):
     s: sq.Connection = sq.connect(bcfg.get("datapath"))
     c: sq.Cursor = s.cursor()
 
@@ -29,7 +29,7 @@ class user:
 
     @classmethod
     def write_from_stat(cls, stat, content: Any) -> None:
-        cls.write(stat.id, stat.stat, content)
+        return cls.write(stat.id, stat.stat, content)
 
     @classmethod
     def read(cls, userid: Union[int, User, Member], stat: Union[str, Sequence[str]]) -> int:

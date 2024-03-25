@@ -116,9 +116,9 @@ async def on_message(message: discord.Message) -> None:
     author: user_instance = user_instance(message.author.id)
     if not message.author.bot:
         if author.read("lastmsg") < (time.time() - 30):
-            author.lastmsg = time.time()
-            author.exp += random(5, 15)
-            author.money += bcfg["moneyexp"]
+            author["lastmsg"] = time.time()
+            author["exp"] += random(5, 15)
+            author["money"] += bcfg["moneyexp"]
 
             if author.exp >= (author.lvl * expincrement) + expstart:
                 userdata.c.execute(
