@@ -36,6 +36,14 @@ def is_command_enabled(command:str=None):
         raise e.CommandNotEnabled(command or ctx.context)
     return check(predicate)
 
+def caller_has_money(money: int):
+    def predicate(ctx: Context) -> bool:
+        if (has := user.read(ctx.author.id, "money")) < money:
+            raise e.BrokeError(money, has)
+        ctx.caller_has_money = money
+        return True
+    return check(predicate)
+
 class Money(Converter):
     async def convert(self, ctx: Context, arg: str) -> int:
         usermoney: int = user.read(ctx.author.id, 'money')

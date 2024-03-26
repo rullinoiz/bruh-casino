@@ -6,7 +6,7 @@ import itertools
 import random
 
 from discord.ext import commands
-from bot_config import bot_config as bcfg
+from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.music.YTDLSource import YTDLSource
 from modules.music.exceptions import VoiceError
 from typing import Union, Callable
@@ -46,16 +46,14 @@ class Song:
             (time.time() - self.startedplaying) if not self.paused else self.startedplaying)
         duration = YTDLSource.parse_duration(self.source.duration)
 
-        embed = (discord.Embed(
+        embed = (BruhCasinoEmbed(
             title='now playing' if not self.paused else 'paused',
             description=f'[{self.source.title}]({self.source.url})\n```{where}{" " * (len(progress_bar) - len(where) - len(duration))}{duration}\n{"".join(progress_bar)}```',
-            color=discord.Color.blurple()
+            color=discord.Color.blurple())
+         .add_field(name='requested by', value=self.requester.mention)
+         .add_field(name='uploaded by', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
+         .set_thumbnail(url=self.source.thumbnail)
         )
-                 .add_field(name='requested by', value=self.requester.mention)
-                 .add_field(name='uploaded by', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
-                 .set_thumbnail(url=self.source.thumbnail)
-                 .set_footer(text=bcfg['footer'])
-                 )
         return embed
 
 
@@ -213,7 +211,7 @@ class VoiceState:
                 self.current.startedplaying = time.time()
                 if is_playing:
                     await self.current.source.channel.send(
-                        embed=self.current.create_embed().set_footer(text=bcfg['footer']))
+                        embed=self.current.create_embed())
 
             # If the song is looped
             elif self.loop:

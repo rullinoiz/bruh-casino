@@ -4,8 +4,6 @@ from modules.userstat import UserStat
 from typing import Union, Sequence
 
 class user_instance(object):
-    __slots__ = ('id',)
-
     def __init__(self, ctx: Union[discord.ext.commands.Context, int]) -> None:
         self.id: int = ctx if isinstance(ctx, int) else ctx.author.id
 

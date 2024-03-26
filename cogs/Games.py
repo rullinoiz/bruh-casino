@@ -460,13 +460,12 @@ class Games(EconomyBruhCasinoCog):
 
     @commands.hybrid_command(name='doubleornothing',aliases=['double','db'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
+    @checks.caller_has_money(50)
     async def double(self, ctx: commands.Context) -> None:
         """bet = $50, hit x10 for 800000 money"""
-        bet: int = 50
-        if ctx.stats['money'] < bet:
-            raise e.BrokeError(bet,ctx.stats['money'])
+        bet: int = ctx.caller_has_money
         
-        chance: int = 70
+        chance: int = 65
         jackpot: int = 800000
         multiplier_image: list[str] = [
             'https://cdn.discordapp.com/attachments/1116943999824035882/1121627385125687356/x0.png',
