@@ -78,14 +78,14 @@ class Games(EconomyBruhCasinoCog):
                     value=str(player)
                 )
             )
-            stats.money += bet
+            stats["money"] += bet
             return
         
         bt: list[Button] = [
             Button(label='Hit'),
             Button(label='Stand'),
             Button(label=f'Double Down (${bet})',disabled=False),
-            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value or stats.money < bet)]
+            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value or stats["money"] < bet)]
         buttons = View(timeout=20)
         for x in bt: buttons.add_item(x)
 
