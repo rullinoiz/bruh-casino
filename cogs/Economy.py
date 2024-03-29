@@ -4,10 +4,17 @@ from discord.ext import commands
 from modules.user_instance import user_instance
 from modules.user_sqlite import user as userdata
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
-from modules.exceptions import RateError
+from modules.BruhCasinoError import BruhCasinoError
+from modules.exceptions import RateError, Uhhhhhh
+from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from modules.checks import Money
 from typing import Optional
 
 import time
+
+class SingularityError(BruhCasinoError):
+    def __init__(self) -> None:
+        super().__init__("I appreciate the donation, but the devil doesn't take tips", codestyle=False)
 
 class Economy(EconomyBruhCasinoCog):
 
@@ -91,13 +98,32 @@ class Economy(EconomyBruhCasinoCog):
 
         send = getattr(t := getattr(ctx, 'send', getattr(ctx, 'response', None)), 'send_message', t)
 
-        await send(embed=discord.Embed(
+        await send(embed=BruhCasinoEmbed(
                 title="Bank",
                 description=description,
                 color=discord.Color.orange(),
             ).set_footer(text=footer),
             #ephemeral=getattr(ctx, 'from_ctx_menu', False)
         )
+
+    @commands.hybrid_command(name='pay')
+    @commands.max_concurrency(1, commands.BucketType.guild)
+    @commands.cooldown(1, 3, commands.BucketType.user)
+    async def pay(self, ctx: commands.Context, user: discord.Member, amount: Money) -> None:
+        if user == ctx.author: raise Uhhhhhh()
+        if user == self.bot.user: raise SingularityError()
+        amount = int(amount)
+
+        if amount < 0: raise Uhhhhhh()
+
+        ctx.stats['money'] -= amount
+        userdata.add(user, 'money', amount)
+
+        await ctx.send(embed=BruhCasinoEmbed(
+            title="Payment Successful",
+            description=f"${amount} has been sent to {user.mention}",
+            color=discord.Color.green()
+        ))
 
     @commands.hybrid_command()
     async def bruh(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:

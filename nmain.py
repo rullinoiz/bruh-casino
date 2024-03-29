@@ -18,7 +18,7 @@ from discord.ext import commands, tasks
 from bot_config import bot_config as bcfg
 from modules.BruhCasinoError import BruhCasinoError
 from modules.checks import is_developer, is_developer_predicate
-from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied
+from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied, RateError
 from modules.server import server
 # noinspection PyUnresolvedReferences
 from modules.user_instance import user_instance
@@ -64,6 +64,8 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
         print(''.join(traceback.format_exception(type(e), e, e.__traceback__)))
     elif f == commands.MaxConcurrencyReached:
         e = MultipleInstanceError(ctx.command)
+    elif f == commands.CommandOnCooldown:
+        e = RateError(f"your ass is NOT spamming `/{ctx.command.name}` (please wait {e.retry_after} seconds)")
 
     codestyle: bool = getattr(e, 'codestyle', True)
     description = f'```{str(e)}```'
@@ -152,9 +154,6 @@ async def _exec(ctx, *, script:str) -> None:
     # noinspection PyUnusedLocal
     channel = ctx.channel
     message = ctx.message
-
-    #if not author.id == bcfg['le_admin']:
-    #    raise AccessDenied(command)
     
     prg = script
     
