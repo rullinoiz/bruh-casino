@@ -55,7 +55,7 @@ class TooMuchData(BruhCasinoError):
 
 class CommandTimeoutError(EditableBruhCasinoError):
     def __init__(self,
-                 time: int = 20,
+                 time: float = 20,
                  msg: Message = None) -> None:
         self.time = time
         super().__init__(msg, f'Sorry, you failed to respond in {time} seconds so I gave up')
@@ -64,3 +64,7 @@ class CommandNotEnabled(BruhCasinoError):
     def __init__(self, command:str) -> None:
         self.command = command
         super().__init__(f'The command "{command}" is not enabled for this server.')
+
+class HandsOffError(BruhCasinoError):
+    def __init__(self) -> None:
+        super().__init__('this isn\'t yours bruv')

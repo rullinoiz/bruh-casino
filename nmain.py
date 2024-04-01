@@ -11,12 +11,14 @@ from itertools import cycle
 from os import system as sys
 from random import randint as random
 from random import seed
+from typing import Callable, Union
 
 import discord
 from discord.ext import commands, tasks
 
 from bot_config import bot_config as bcfg
 from modules.BruhCasinoError import BruhCasinoError
+from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.checks import is_developer, is_developer_predicate
 from modules.exceptions import ArgumentError, MultipleInstanceError, AccessDenied, RateError
 from modules.server import server
@@ -51,7 +53,7 @@ async def on_ready() -> None:
     cycle_status.start()
 
 @client.event
-async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> None:
+async def on_command_error(ctx: Union[commands.Context, discord.Interaction], e:commands.CommandError, *args, **kwargs) -> None:
     f = type(e)
     description: str
     # TODO: Refactor for 3.11 (when it comes out)
@@ -71,12 +73,24 @@ async def on_command_error(ctx:commands.Context, e:commands.CommandError) -> Non
     description = f'```{str(e)}```'
     if not isinstance(e, BruhCasinoError): description += '\nplease ping me about this error because it was not intentional'
     if not codestyle: description = description[3:-3]
-    await (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)(
-        embed=discord.Embed(
-            title=type(e).__name__,
-            description=description,
-            color=discord.Color.red(),
-        ).set_footer(text=footer),
+    func: Callable
+
+    embed: discord.Embed = BruhCasinoEmbed(
+        title=type(e).__name__,
+        description=description,
+        color=discord.Color.red(),
+    )
+
+    if isinstance(ctx, discord.Interaction):
+        return await ctx.response.send_message(
+            embed=embed,
+            ephemeral=True
+        )
+    else:
+        func = (e.message.edit if (toedit := hasattr(e, 'message')) else ctx.send)
+
+    await func(
+        embed=embed,
         **({'view':None} if (toedit or isinstance(e, AccessDenied)) and not getattr(e, 'ephemeral', False) else {'view':None,'ephemeral':True})
     )
 
@@ -139,7 +153,6 @@ async def on_message(message: discord.Message) -> None:
 
 @client.event
 async def on_reaction_add(reaction:discord.Reaction, user: discord.User) -> None:
-    print(reaction, user)
     if reaction.message.author != client.user or reaction.emoji != '❌': return
 
     if is_developer_predicate(user): await reaction.message.delete()

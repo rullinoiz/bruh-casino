@@ -8,6 +8,7 @@ from bot_config import bot_config as bcfg
 from modules.videopoker import HandAnalyzer
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
 from typing import Callable
 
 import modules.checks as checks
@@ -17,6 +18,10 @@ import asyncio
 from random import randint as random
 
 class Games(EconomyBruhCasinoCog):
+
+    def __init__(self, bot: discord.ext.commands.Bot) -> None:
+        super().__init__(bot)
+        self.double_games: dict[int, DoubleOrNothingGame] = {}
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -237,7 +242,8 @@ class Games(EconomyBruhCasinoCog):
     @checks.under_construction()
     async def war(self, ctx: commands.Context, ante: checks.Money, tie: checks.Money = 0) -> None:
         """tie pays 12:1"""
-        footer = bcfg['footer']
+        ante: int = int(ante)
+        tie: int = int(tie)
 
         if ante + tie > ctx.stats['money']:
             raise e.BrokeError(ante+tie,ctx.stats['money'])
@@ -252,21 +258,20 @@ class Games(EconomyBruhCasinoCog):
         for x in bt: buttons.add_item(x) 
 
         if dealers[0].rank == users[0].rank:
-            mtoedit: discord.Message = await ctx.send(embed=discord.Embed(
+            mtoedit: discord.Message = await ctx.send(embed=BruhCasinoEmbed(
                     title="War",
-                    description="It's a tie!" + (" Your tie paid $" + tie*12 + "!") if tie != 0 else "",
+                    description="It's a tie!" + (f" Your tie paid ${tie*12}!" if tie != 0 else ""),
                     color=discord.Color.orange(),
                 )
                 .add_field(name="Dealer",value=dealers[0])
-                .add_field(name="You",value=users[0])
-                .set_footer(text=footer),
+                .add_field(name="You",value=users[0]),
                 view=buttons
             )
 
             ctx.stats.add(('money','moneygained','wins'),(tie*12,tie*12,1))
 
             try:
-                msg = await self.bot.wait_for('interaction', check=lambda i: i.user.id == ctx.author.id and i.type == discord.InteractionType.component and i.data['custom_id'] in [x.custom_id for x in bt], timeout=20.0)
+                msg = await self.wait_for_button(ctx=ctx, mtoedit=mtoedit, timeout=20)
                 await msg.response.defer()
             except asyncio.TimeoutError:
                 pass
@@ -463,88 +468,18 @@ class Games(EconomyBruhCasinoCog):
     @checks.caller_has_money(50)
     async def double(self, ctx: commands.Context) -> None:
         """bet = $50, hit x10 for 800000 money"""
+
         bet: int = ctx.caller_has_money
-        
-        chance: int = 60
-        jackpot: int = 800000
-        multiplier_image: list[str] = [
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121627385125687356/x0.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621595434274876/x1.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621595170013294/x2.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621594914168862/x3.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621594666717235/x4.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621594419232848/x5.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621594129842286/x6.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621593769136268/x7.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621593530040380/x8.png',
-            'https://cdn.discordapp.com/attachments/1116943999824035882/1121621593249038425/x9.png'
-        ]
-        cashout_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654674624654/cashout.png'
-        start_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654292934686/start.png'
-        jackpot_image: str = ''
 
-        bt: list[Button] = [Button(label='Double'),Button(label='Cash Out',disabled=True)]
-        buttons: View = View(timeout=10)
-        for x in bt: buttons.add_item(x)
+        if ctx.author.id in self.double_games.keys():
+            t = self.double_games[ctx.author.id]
+            if t.active:
+                raise e.MultipleInstanceError(ctx.command)
+            t.view.stop()
+            await t.message.edit(view=None)
+            del self.double_games[ctx.author.id]
 
-        current_multiplier = 0
-        lost = False
-        won = False
-        
-        mtoedit = await ctx.send(embed=BruhCasinoEmbed(
-                title="Double or Nothing",
-                description='Current Cash Out: $0',
-                color=discord.Color.orange()
-            ).set_image(url=start_image),
-            view=buttons
-        )
-
-        while not lost and not won:
-            msg = await self.wait_for_button(ctx=ctx, mtoedit=mtoedit, buttons=bt, timeout=10)
-            await msg.response.defer()
-            
-            bt[1].disabled = False
-            buttons.clear_items().add_item(bt[0]).add_item(bt[1])
-            embed = mtoedit.embeds[0]
-            if msg.data['custom_id'] == bt[0].custom_id:
-                if random(1,100) <= chance:
-                    current_multiplier += 1
-                    if current_multiplier >= 10:
-                        won = True
-                        break
-
-                    embed.description = f'Current Cash Out: ${bet * (2**(current_multiplier-1))}'
-                    embed.set_image(url=multiplier_image[current_multiplier])
-                    await mtoedit.edit(embed=embed,view=buttons)
-                else:
-                    lost = True
-                    break
-            elif msg.data['custom_id'] == bt[1].custom_id:
-                if current_multiplier == 0:
-                    mon = 0
-                else:
-                    mon = bet * (2**(current_multiplier-1))
-                embed.color = discord.Color.green()
-                embed.set_image(url=cashout_image)
-                embed.description = f'You cashed out for ${bet * (2**(current_multiplier-1))}!'
-                ctx.stats.won(mon)
-                await mtoedit.edit(embed=embed,view=None)
-                return
-        
-        if lost:
-            embed.color = discord.Color.red()
-            embed.set_image(url=multiplier_image[0])
-            embed.description = f'You lost ${bet} lmao'
-            ctx.stats.lost(bet)
-            await mtoedit.edit(embed=embed,view=None)
-            return
-        elif won:
-            embed.color = discord.Color.yellow()
-            embed.set_image(url=jackpot_image)
-            embed.description = f'You won a jackpot of ${jackpot}!'
-            ctx.stats.won(jackpot)
-            await mtoedit.edit(embed=embed,view=None)
-            return
+        self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet)
 
     @commands.hybrid_command(name='videopoker')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
