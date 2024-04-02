@@ -83,16 +83,6 @@ class DoubleOrNothingGame(BruhCasinoGame):
                 view=self.get_retry_button()
             )
 
-    def get_retry_button(self) -> View:
-        v = None
-        if self.stats.money >= self.bet:
-            v = self.view
-            v.clear_items()
-            b = Button(label=f"Play Again (${self.bet})")
-            b.callback = self.on_retry
-            v.add_item(b)
-        return v
-
     async def on_cashout(self, ctx: Interaction) -> None:
         await ctx.response.defer()
         self.active = False
@@ -104,10 +94,6 @@ class DoubleOrNothingGame(BruhCasinoGame):
         ).set_image(url=self.cashout_image),
             view=self.get_retry_button()
         )
-
-    async def on_retry(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
-        await self._init()
 
     async def on_jackpot(self, ctx: Interaction) -> None:
         self.active = False

@@ -9,6 +9,7 @@ from modules.videopoker import HandAnalyzer
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
+from cogs.games_deps.Blackjack import BlackjackGame
 from typing import Callable
 
 import modules.checks as checks
@@ -22,220 +23,24 @@ class Games(EconomyBruhCasinoCog):
     def __init__(self, bot: discord.ext.commands.Bot) -> None:
         super().__init__(bot)
         self.double_games: dict[int, DoubleOrNothingGame] = {}
+        self.blackjack_games: dict[int, BlackjackGame] = {}
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def blackjack(self, ctx: commands.Context, bet: checks.Money) -> None:
         """blackjack gaming"""
+
         bet: int = int(bet)
-        stats: user_instance = ctx.stats
 
-        footer = bcfg['footer']
+        if ctx.author.id in self.blackjack_games.keys():
+            t = self.blackjack_games[ctx.author.id]
+            if t.active:
+                raise e.MultipleInstanceError(ctx.command)
+            t.view.stop()
+            await t.message.edit(view=None)
+            del self.blackjack_games[ctx.author.id]
 
-        deck: cards.Deck = cards.Deck(decks=2)
-        deck.shuffle()
-
-        stats.money -= bet
-
-        dealerhand: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
-        player: cards.BlackjackHand = cards.BlackjackHand(deck=deck.draw(2))
-
-        if player.is_blackjack() and not dealerhand.is_blackjack():
-            await ctx.send(embed=BruhCasinoEmbed(
-                    title="Blackjack",
-                    description="You have blackjack! You won {0} money.".format(bet*2),
-                    color=discord.Color.green()
-                ).add_field(
-                    name="Dealer ({0})".format(int(dealerhand)),
-                    value=str(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(21),
-                    value=str(player)
-                )
-            )
-            stats.add(('money','moneygained','wins'),(bet*3,bet*2,1))
-            return
-        elif dealerhand.is_blackjack() and not player.is_blackjack():
-            await ctx.send(embed=BruhCasinoEmbed(
-                    title="Blackjack",
-                    description="Dealer has blackjack! You lost {0} money.".format(bet),
-                    color=discord.Color.red()
-                ).add_field(
-                    name="Dealer ({0})".format(21),
-                    value=str(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(player.toVal()),
-                    value=str(player)
-                )
-            )
-            stats.add(('moneylost','loss'),(bet,1))
-            return
-        elif player.is_blackjack() and dealerhand.is_blackjack():
-            await ctx.send(embed=BruhCasinoEmbed(
-                    title="Blackjack",
-                    description="It's a tie! No one wins.",
-                    color=discord.Color.red()
-                ).add_field(
-                    name="Dealer ({0})".format(21),
-                    value=str(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(21),
-                    value=str(player)
-                )
-            )
-            stats["money"] += bet
-            return
-        
-        bt: list[Button] = [
-            Button(label='Hit'),
-            Button(label='Stand'),
-            Button(label=f'Double Down (${bet})',disabled=False),
-            Button(label=f'Split (${bet})',disabled=player[0].value != player[1].value or stats["money"] < bet)]
-        buttons = View(timeout=20)
-        for x in bt: buttons.add_item(x)
-
-        mtoedit: discord.Message = await ctx.send(embed=BruhCasinoEmbed(
-                title="Blackjack",
-                description="Click \"Hit\", \"Stand\", \"Double Down\", or \"Split\" within 20 seconds.",
-                color=discord.Color.orange()
-            ).add_field(
-                name="Dealer (?)",
-                value="{0} {1}".format("?",dealerhand[1])
-            ).add_field(
-                name="You ({0})".format(player.toVal()),
-                value=str(player)
-            ),
-            view=buttons
-        )
-
-        player: list[cards.BlackjackHand] = [player]
-
-        def listHands(hands:list[cards.BlackjackHand],current:int=None) -> str:
-            val: list[str] = []
-            for i,v in enumerate(hands, start=0):
-                val.append('{0}{1}{0}'.format('__' if i == current and len(hands) != 1 else ('~~' if v.busted else ''), str(v)))
-            return '\n'.join(val)
-
-        for i, playerhand in enumerate(player, start=0):
-            stay: bool = False
-            bt[2].disabled = stats.read('money') < bet
-            bt[3].disabled = playerhand[0].value != playerhand[1].value or stats.read('money') < bet
-            while not (stay or playerhand.busted or playerhand.is_blackjack()):
-                embed = mtoedit.embeds[0]
-                buttons.clear_items()
-                for x in bt: buttons.add_item(x)
-                await mtoedit.edit(embed=embed.clear_fields()
-                    .add_field(
-                        name="Dealer (?)",
-                        value="{0} {1}".format("?", dealerhand[1])
-                    ).add_field(
-                        name="You ({0})".format(playerhand.toVal()),
-                        value=listHands(player, i)
-                    ),
-                    view=buttons
-                )
-
-                msg = await self.wait_for_button(ctx, mtoedit, bt)
-                await msg.response.defer()
-
-                # TODO: Refactor for 3.11 (when it comes out)
-                if msg.data['custom_id'] == bt[0].custom_id:  # hit
-                    bt[3].disabled = True
-                    bt[2].disabled = True
-                    playerhand.append(deck.draw())
-                
-                elif msg.data['custom_id'] == bt[1].custom_id:  # stay
-                    stay = True
-
-                elif msg.data['custom_id'] == bt[2].custom_id:  # double
-                    stats.subtract('money', bet)
-                    playerhand.append(deck.draw())
-                    playerhand.doubled = True
-                    stay = True
-
-                elif msg.data['custom_id'] == bt[3].custom_id: # split
-                    stats.subtract('money', bet)
-                    player.insert(i+1, cards.BlackjackHand(playerhand.draw()))
-                    playerhand.append(deck.draw())
-                    player[i+1].append(deck.draw())
-                    bt[3].disabled = playerhand[0].value != playerhand[1].value and stats.read('money')
-
-        embed = mtoedit.embeds[0]
-
-        if player[0].busted and len(player) == 1:
-            embed.description = "Bust! You lost {0} money.".format(bet)
-            embed.color = discord.Color.red()
-            await mtoedit.edit(embed=embed.clear_fields()
-                .add_field(
-                    name="Dealer ({0})".format(dealerhand.toVal()),
-                    value=str(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(player[0].toVal()),
-                    value=listHands(player)
-                ),
-                view=None
-            )
-            stats.add(('moneylost', 'loss'), (bet, 1))
-            return
-
-        embed.description = 'Waiting for dealer...'
-        while not (dealerhand.busted or int(dealerhand) >= 17):
-            await mtoedit.edit(embed=embed.clear_fields()
-                .add_field(
-                    name="Dealer ({0})".format(dealerhand.toVal()),
-                    value=str(dealerhand)
-                ).add_field(
-                    name="You ({0})".format(', '.join([str(x.toVal()) for x in player])),
-                    value=listHands(player)
-                ),
-                view=None
-            )
-            await asyncio.sleep(1)
-            dealerhand.append(deck.draw())
-
-        toSend: list[str] = []
-        moneyWon: int = 0
-        gameWorth: int = 0
-        for d in player:
-            if d.busted:
-                toSend.append(listHands([d]))
-                gameWorth += bet*2 if d.doubled else bet
-            elif int(d) > int(dealerhand) or dealerhand.busted:
-                toSend.append(f'{"🟩" if len(player) > 1 else ""}{str(d)}')
-                gameWorth += bet*2 if d.doubled else bet
-                moneyWon += bet*4 if d.doubled or d.is_blackjack() else bet*2
-            elif int(d) < int(dealerhand):
-                toSend.append(f'{"🟥" if len(player) > 1 else ""}{str(d)}')
-                gameWorth += bet*2 if d.doubled else bet
-            elif int(d) == int(dealerhand):
-                toSend.append(f'{"🟨" if len(player) > 1 else ""}{str(d)}')
-                gameWorth += bet*2 if d.doubled else bet
-                moneyWon += bet*2 if d.doubled else bet
-
-
-        if moneyWon < gameWorth:
-            embed.description = f'You lost ${gameWorth-moneyWon}!'
-            embed.color = discord.Color.red()
-            stats.add(('moneylost','loss'),(gameWorth-moneyWon,1))
-        elif moneyWon == gameWorth:
-            embed.description = f'You broke even with ${moneyWon}!'
-            embed.color = discord.Color.yellow()
-            stats.add('money',gameWorth)
-        elif moneyWon > gameWorth:
-            embed.description = f'You won ${moneyWon-gameWorth}!'
-            embed.color = discord.Color.green()
-            stats.add(('money','moneygained','wins'),(moneyWon,moneyWon-gameWorth,1))
-
-        await mtoedit.edit(embed=embed.clear_fields()
-            .add_field(
-                name="Dealer ({0})".format(dealerhand.toVal()),
-                value=str(dealerhand)
-            ).add_field(
-                name="You ({0})".format(', '.join([str(x.toVal()) for x in player])),
-                value='\n'.join(toSend)
-            ),
-            view=None
-        )
+        self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False)
 
     @commands.hybrid_command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
