@@ -55,10 +55,10 @@ class Economy(EconomyBruhCasinoCog):
                 msg=f'You have already claimed your daily reward. You can claim it again <t:{int(t)}:R>.'
             )
         else:
-            stats.money += dailymoney
+            stats.money += stats.lvl * 100
             await ctx.send(embed=discord.Embed(
                     title="Daily Reward",
-                    description=f'You have claimed your daily reward! You got {dailymoney} money.',
+                    description=f'You have claimed your daily reward! You got {stats.lvl * 100} money.',
                     color=discord.Color.green(),
                 ).set_footer(text=footer)
             )
