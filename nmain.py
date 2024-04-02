@@ -81,6 +81,9 @@ async def on_command_error(ctx: Union[commands.Context, discord.Interaction], e:
         color=discord.Color.red(),
     )
 
+    if codestyle:
+        embed.set_image(url="https://media1.tenor.com/m/7kFmSbAcLsUAAAAC/conductor-we-have-a-problem-cat.gif")
+
     if isinstance(ctx, discord.Interaction):
         return await ctx.response.send_message(
             embed=embed,
