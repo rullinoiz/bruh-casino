@@ -80,3 +80,4 @@ class BruhCasinoGame(object):
             await self.cog.bot.on_command_error(self.ctx, e)
         else:
             await self.message.edit(view=None)
+            del self.message
