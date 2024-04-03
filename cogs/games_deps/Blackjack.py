@@ -5,7 +5,7 @@ from modules.BruhCasinoGame import BruhCasinoGame
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.cards import Deck, BlackjackHand
 
-from discord.ui import Button
+from discord.ui import Button, View
 from discord import Interaction, Color
 
 class BlackjackGame(BruhCasinoGame):
@@ -34,6 +34,7 @@ class BlackjackGame(BruhCasinoGame):
         t: Callable = self.ctx.send if not hasattr(self, "message") else self.message.edit
 
         if self.dealer.is_blackjack() and not self.current_hand.is_blackjack():
+            self.stats.add(('moneylost', 'loss'), (self.bet, 1))
             self.message = await t(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description=f"Dealer has blackjack! You lost {self.bet} money.",
@@ -45,8 +46,8 @@ class BlackjackGame(BruhCasinoGame):
                 name=f"You ({self.current_hand.toVal()})",
                 value=str(self.current_hand)
             ), view=self.get_retry_button())
-            self.stats.add(('moneylost', 'loss'), (self.bet, 1))
         elif self.current_hand.is_blackjack() and not self.dealer.is_blackjack():
+            self.stats.add(('money','moneygained', 'wins'), (self.bet + self.bet * self.blackjack_payout, self.bet * self.blackjack_payout, 1))
             self.message = await t(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description=f"You have blackjack! You won {self.bet * self.blackjack_payout} money!",
@@ -58,8 +59,8 @@ class BlackjackGame(BruhCasinoGame):
                 name="You (21)",
                 value=str(self.current_hand)
             ), view=self.get_retry_button())
-            self.stats.add(('money','moneygained', 'wins'), (self.bet + self.bet * self.blackjack_payout, self.bet * self.blackjack_payout, 1))
         elif self.current_hand.is_blackjack() and self.dealer.is_blackjack():
+            self.stats["money"] += self.bet
             self.message = await t(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description="It's a tie! No one wins.",
@@ -71,7 +72,6 @@ class BlackjackGame(BruhCasinoGame):
                 name="You (21)",
                 value=str(self.current_hand)
             ), view=self.get_retry_button())
-            self.stats["money"] += self.bet
         else:
             self.refresh_embed()
             self.refresh_buttons()
@@ -87,6 +87,18 @@ class BlackjackGame(BruhCasinoGame):
             name=f"You ({int(self.current_hand)})",
             value=self.listHands()
         )
+
+    async def on_ride(self, ctx: Interaction) -> None:
+        self.bet *= 2
+        await super().on_retry(ctx)
+
+    def get_retry_button(self) -> View:
+        v: View = super().get_retry_button()
+        if self.stats["money"] >= self.bet * 2:
+            b: Button = Button(label=f"Top Up (${self.bet * 2})")
+            b.callback = self.on_ride
+            v.add_item(b)
+        return v
 
     def listHands(self, display: bool = True) -> str:
         hands: list[BlackjackHand] = self.player

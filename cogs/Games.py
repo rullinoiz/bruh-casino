@@ -38,7 +38,10 @@ class Games(EconomyBruhCasinoCog):
                 raise e.MultipleInstanceError(ctx.command)
             t.view.stop()
             await t.message.edit(view=None)
-            del self.blackjack_games[ctx.author.id]
+            self.blackjack_games.__delitem__(ctx.author.id)
+
+        if self.blackjack_games.__contains__(ctx.author.id):
+            self.blackjack_games.__delitem__(ctx.author.id)
 
         self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False)
 
@@ -282,7 +285,10 @@ class Games(EconomyBruhCasinoCog):
                 raise e.MultipleInstanceError(ctx.command)
             t.view.stop()
             await t.message.edit(view=None)
-            del self.double_games[ctx.author.id]
+            self.double_games.__delitem__(ctx.author.id)
+
+        if self.double_games.__contains__(ctx.author.id):
+            self.double_games.__delitem__(ctx.author.id)
 
         self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet)
 
