@@ -101,7 +101,7 @@ class BlackjackGame(BruhCasinoGame):
         b: list[Button] = [
             Button(label="Hit"),
             Button(label="Stand"),
-            Button(label=f"Double Down (${self.bet})", disabled=self.current_hand.__len__() > 2),
+            Button(label=f"Double Down (${self.bet})", disabled=self.current_hand.__len__() > 2 or self.stats.money < self.bet),
             Button(label=f"Split (${self.bet})", disabled=self.current_hand.__len__() != 2 or self.current_hand[0].value != self.current_hand[1].value or self.stats["money"] < self.bet)
         ]
         b[0].callback = self.on_hit
@@ -177,6 +177,7 @@ class BlackjackGame(BruhCasinoGame):
     async def on_busted(self) -> None:
         self.refresh_embed()
         self.embed.description = f"Bust! You lost ${self.bet}."
+        self.embed.color = Color.red()
         await self.message.edit(embed=self.embed, view=self.get_retry_button())
 
     async def on_hit(self, ctx: Interaction) -> None:
