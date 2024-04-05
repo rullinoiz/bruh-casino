@@ -81,3 +81,7 @@ class BruhCasinoGame(object):
         else:
             await self.message.edit(view=None)
             del self.message
+
+    async def send_or_edit(self, *args, **kwargs) -> Message:
+        if hasattr(self, "message"): return await self.message.edit(*args, **kwargs)
+        else: return await self.ctx.send(*args, **kwargs)

@@ -10,6 +10,7 @@ from modules.BruhCasinoCog import EconomyBruhCasinoCog
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
 from cogs.games_deps.Blackjack import BlackjackGame
+from cogs.games_deps.Mines import MinesGame
 from typing import Callable
 
 import modules.checks as checks
@@ -24,6 +25,7 @@ class Games(EconomyBruhCasinoCog):
         super().__init__(bot)
         self.double_games: dict[int, DoubleOrNothingGame] = {}
         self.blackjack_games: dict[int, BlackjackGame] = {}
+        self.mines_games: dict[int, MinesGame] = {}
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -369,5 +371,30 @@ class Games(EconomyBruhCasinoCog):
             stats.add(('loss','moneylost'),(1,bet))
 
         await mtoedit.edit(embed=embed, view=None)
+
+    @commands.hybrid_command(name='mines')
+    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
+    #@checks.arg_is_at_least(100)
+    async def mines(self, ctx: commands.Context, bet: checks.Money, mines: int = 3) -> None:
+        bet: int = int(bet)
+
+        if bet < 100:
+            raise e.ArgumentValueError(f"Argument \"bet\" must be at least {100}!")
+
+        if mines < 1 or mines > 24:
+            raise e.ArgumentValueError(f"Argument \"mines\" must within 1 and 24!")
+
+        if ctx.author.id in self.mines_games.keys():
+            t = self.mines_games[ctx.author.id]
+            if t.active:
+                raise e.MultipleInstanceError(ctx.command)
+            t.view.stop()
+            try:
+                await t.on_timeout()
+            except AttributeError:
+                pass
+            self.mines_games.__delitem__(ctx.author.id)
+
+        self.mines_games[ctx.author.id] = await MinesGame.create(self, ctx, bet, mines=mines)
 
 setup: Callable = Games.setup
