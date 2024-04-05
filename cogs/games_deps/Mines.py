@@ -58,7 +58,7 @@ class MinesGame(BruhCasinoGame):
         return (fc(real) * fc(len(self.board) - self.spaces_cleared)) / (fc(len(self.board)) * fc(real - self.spaces_cleared))
 
     def get_multiplier(self) -> float:
-        return round((1 / self.get_chance()) * 0.99, 2)
+        return round((1 / self.get_chance()), 2)
 
     def get_winnings(self) -> int:
         return round(self.bet * self.get_multiplier())
@@ -144,7 +144,7 @@ class MinesGame(BruhCasinoGame):
 
     async def on_cashout(self, ctx: Interaction) -> None:
         await ctx.response.defer()
-        self.stats.won(self.get_winnings())
+        self.stats.won(self.get_winnings() - self.bet)
         self.active = False
 
         await self.message.edit(embed=BruhCasinoEmbed(
