@@ -38,6 +38,8 @@ class MinesGame(BruhCasinoGame):
     async def _init(self) -> None:
         self.active = True
         self.board: list[MinesSpace] = MinesBoard.new(self.mines)
+        for i in self.board:
+            print(1 if i.is_mine else 0)
         self.spaces_cleared: int = 0
 
         self.buttons = self.get_buttons()
