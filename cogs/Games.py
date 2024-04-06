@@ -3,7 +3,6 @@ from discord.ext import commands
 from discord.ui import Button,View
 import modules.cards as cards
 from modules.user_sqlite import user
-from modules.user_instance import user_instance
 from bot_config import bot_config as bcfg
 from modules.videopoker import HandAnalyzer
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
@@ -11,6 +10,7 @@ from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
 from cogs.games_deps.Blackjack import BlackjackGame
 from cogs.games_deps.Mines import MinesGame
+from cogs.games_deps.SecretLair import SecretLairGame
 from typing import Callable
 
 import modules.checks as checks
@@ -26,6 +26,7 @@ class Games(EconomyBruhCasinoCog):
         self.double_games: dict[int, DoubleOrNothingGame] = {}
         self.blackjack_games: dict[int, BlackjackGame] = {}
         self.mines_games: dict[int, MinesGame] = {}
+        self.secretlair_games: dict[int, SecretLairGame] = {}
 
     @commands.hybrid_command(name='blackjack',aliases=['bj'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -45,7 +46,7 @@ class Games(EconomyBruhCasinoCog):
                 pass
             self.blackjack_games.__delitem__(ctx.author.id)
 
-        self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False)
+        self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False, timeout=30)
 
     @commands.hybrid_command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -292,7 +293,7 @@ class Games(EconomyBruhCasinoCog):
                 pass
             self.double_games.__delitem__(ctx.author.id)
 
-        self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet)
+        self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet, timeout=20)
 
     @commands.hybrid_command(name='videopoker')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -395,6 +396,27 @@ class Games(EconomyBruhCasinoCog):
                 pass
             self.mines_games.__delitem__(ctx.author.id)
 
-        self.mines_games[ctx.author.id] = await MinesGame.create(self, ctx, bet, mines=mines)
+        self.mines_games[ctx.author.id] = await MinesGame.create(self, ctx, bet, mines=mines, timeout=30)
+
+    @commands.hybrid_command(name="secretlair")
+    @commands.max_concurrency(1, commands.BucketType.user, wait=False)
+    async def secretlair(self, ctx: commands.Context, bet: checks.Money) -> None:
+        bet: int = int(bet)
+
+        if bet < 100:
+            raise e.ArgumentValueError(f"Argument \"bet\" must be at least {100}!")
+
+        if ctx.author.id in self.secretlair_games.keys():
+            t = self.secretlair_games[ctx.author.id]
+            if t.active:
+                raise e.MultipleInstanceError(ctx.command)
+            t.view.stop()
+            try:
+                await t.on_timeout()
+            except AttributeError:
+                pass
+            self.secretlair_games.__delitem__(ctx.author.id)
+
+        self.secretlair_games[ctx.author.id] = await SecretLairGame.create(self, ctx, bet, danger=1, timeout=60)
 
 setup: Callable = Games.setup

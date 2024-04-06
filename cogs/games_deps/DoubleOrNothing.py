@@ -1,5 +1,5 @@
 from discord import Interaction, Color
-from discord.ui import Button, View
+from discord.ui import Button
 
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.BruhCasinoGame import BruhCasinoGame
@@ -7,8 +7,8 @@ from modules.BruhCasinoGame import BruhCasinoGame
 from random import randint as random
 
 class DoubleOrNothingGame(BruhCasinoGame):
-    chance = 60
-    jackpot = 800_000
+    chance: int = 60
+    jackpot: int = 800_000
     multiplier_image: list[str] = [
         'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654292934686/start.png',
         'https://cdn.discordapp.com/attachments/1116943999824035882/1121621595434274876/x1.png',

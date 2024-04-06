@@ -8,7 +8,7 @@ from modules.BruhCasinoCog import BruhCasinoCog
 
 from math import factorial as fc
 
-from random import shuffle, random
+from random import shuffle
 
 class MinesSpace:
     def __init__(self, is_mine: bool) -> None:

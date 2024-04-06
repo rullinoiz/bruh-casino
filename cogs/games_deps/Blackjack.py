@@ -29,7 +29,7 @@ class BlackjackGame(BruhCasinoGame):
         self.player: list[BlackjackHand] = [BlackjackHand(deck=self.deck.draw(2))]
 
         self.current: int = 0
-        self.embed: BruhCasinoEmbed = BruhCasinoEmbed(title="Blackjack", description="Click hit, stand, double down, or split within 20 seconds.", color=Color.orange())
+        self.embed: BruhCasinoEmbed = BruhCasinoEmbed(title="Blackjack", description=f"Click hit, stand, double down, or split within {self.view.timeout} seconds.", color=Color.orange())
 
         t: Callable = self.ctx.send if not hasattr(self, "message") else self.message.edit
 
