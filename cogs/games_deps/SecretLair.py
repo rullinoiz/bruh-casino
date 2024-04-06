@@ -251,3 +251,11 @@ class SecretLairGame(BruhCasinoGame):
         self.refresh_buttons()
         await self.message.edit(embed=e, view=self.view)
 
+    async def on_timeout(self) -> None:
+        if self.active:
+            return await super().on_timeout()
+        else:
+            del self.buttons[-1]
+            self.refresh_buttons()
+            await self.message.edit(view=self.view)
+            del self.message
