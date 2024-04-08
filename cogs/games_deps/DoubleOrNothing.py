@@ -7,8 +7,8 @@ from modules.BruhCasinoGame import BruhCasinoGame
 from random import randint as random
 
 class DoubleOrNothingGame(BruhCasinoGame):
-    chance: int = 60
-    jackpot: int = 800_000
+    chance: int = 50
+    jackpot: int = (1 / (chance / 100)) * 4
     multiplier_image: list[str] = [
         'https://cdn.discordapp.com/attachments/1116943999824035882/1121621654292934686/start.png',
         'https://cdn.discordapp.com/attachments/1116943999824035882/1121621595434274876/x1.png',
@@ -55,7 +55,7 @@ class DoubleOrNothingGame(BruhCasinoGame):
 
     @classmethod
     def roll(cls) -> bool:
-        return random(0, 100) <= cls.chance
+        return random(0, 100) < cls.chance
 
     def get_cashout(self) -> int:
         if self.multiplier == 0: return 0
@@ -97,10 +97,10 @@ class DoubleOrNothingGame(BruhCasinoGame):
 
     async def on_jackpot(self, ctx: Interaction) -> None:
         self.active = False
-        self.stats.won(self.jackpot)
+        self.stats.won(self.jackpot * self.bet)
         await ctx.message.edit(embed=BruhCasinoEmbed(
             title="Double or Nothing",
-            description=f"You won a jackpot of ${self.jackpot}!",
+            description=f"You won a jackpot of ${self.jackpot * self.bet}!",
             color=Color.yellow()
         ).set_image(url=self.jackpot_image),
             view=self.get_retry_button()

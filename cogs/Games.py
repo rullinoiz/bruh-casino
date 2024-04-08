@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ui import Button,View
 import modules.cards as cards
 from modules.user_sqlite import user
@@ -7,6 +7,7 @@ from bot_config import bot_config as bcfg
 from modules.videopoker import HandAnalyzer
 from modules.BruhCasinoCog import EconomyBruhCasinoCog
 from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from modules.BruhCasinoGame import BruhCasinoGame
 from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
 from cogs.games_deps.Blackjack import BlackjackGame
 from cogs.games_deps.Mines import MinesGame
@@ -21,8 +22,36 @@ from random import randint as random
 
 class Games(EconomyBruhCasinoCog):
 
+    async def setup_game(self, ctx: commands.Context) -> None:
+        game: dict[int, BruhCasinoGame] = getattr(self, f"{ctx.command.callback.__name__}_games")
+        if ctx.author.id in game.keys():
+            t: BruhCasinoGame = game[ctx.author.id]
+            if t.active:
+                raise e.MultipleInstanceError(ctx.command)
+            t.view.stop()
+            try:
+                await t.message.edit(view=None)
+            except AttributeError:
+                pass
+            game.__delitem__(ctx.author.id)
+
+    @tasks.loop(seconds=30)
+    async def garbage_collect(self) -> None:
+        t: list[dict[int, BruhCasinoGame]] = [self.double_games, self.blackjack_games, self.mines_games, self.secretlair_games]
+
+        for l in t:
+            d: list[int] = []
+            for u in l.keys():
+                game: BruhCasinoGame = l[u]
+                if not game.active and not hasattr(game, "message"):
+                    print(f"clearing {u} -> {game.__class__}")
+                    d.append(u)
+            for x in d:
+                l.__delitem__(x)
+
     def __init__(self, bot: discord.ext.commands.Bot) -> None:
         super().__init__(bot)
+        self.garbage_collect.start()
         self.double_games: dict[int, DoubleOrNothingGame] = {}
         self.blackjack_games: dict[int, BlackjackGame] = {}
         self.mines_games: dict[int, MinesGame] = {}
@@ -35,17 +64,7 @@ class Games(EconomyBruhCasinoCog):
 
         bet: int = int(bet)
 
-        if ctx.author.id in self.blackjack_games.keys():
-            t = self.blackjack_games[ctx.author.id]
-            if t.active:
-                raise e.MultipleInstanceError(ctx.command)
-            t.view.stop()
-            try:
-                await t.message.edit(view=None)
-            except AttributeError:
-                pass
-            self.blackjack_games.__delitem__(ctx.author.id)
-
+        await self.setup_game(ctx)
         self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False, timeout=30)
 
     @commands.hybrid_command(name='war')
@@ -276,23 +295,12 @@ class Games(EconomyBruhCasinoCog):
 
     @commands.hybrid_command(name='doubleornothing',aliases=['double','db'])
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    @checks.caller_has_money(50)
-    async def double(self, ctx: commands.Context) -> None:
-        """bet = $50, hit x10 for 800000 money"""
+    async def double(self, ctx: commands.Context, bet: checks.Money) -> None:
+        """hit x10 for, like, a lot of money"""
 
-        bet: int = ctx.caller_has_money
+        bet: int = int(bet)
 
-        if ctx.author.id in self.double_games.keys():
-            t = self.double_games[ctx.author.id]
-            if t.active:
-                raise e.MultipleInstanceError(ctx.command)
-            t.view.stop()
-            try:
-                await t.message.edit(view=None)
-            except AttributeError:
-                pass
-            self.double_games.__delitem__(ctx.author.id)
-
+        await self.setup_game(ctx)
         self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet, timeout=20)
 
     @commands.hybrid_command(name='videopoker')
@@ -382,41 +390,23 @@ class Games(EconomyBruhCasinoCog):
         if bet < 100:
             raise e.ArgumentValueError(f"Argument \"bet\" must be at least {100}!")
 
-        if mines < 1 or mines > 24:
-            raise e.ArgumentValueError(f"Argument \"mines\" must within 1 and 24!")
+        if mines < 1 or mines > 23:
+            raise e.ArgumentValueError(f"Argument \"mines\" must within 1 and 23!")
 
-        if ctx.author.id in self.mines_games.keys():
-            t = self.mines_games[ctx.author.id]
-            if t.active:
-                raise e.MultipleInstanceError(ctx.command)
-            t.view.stop()
-            try:
-                await t.on_timeout()
-            except AttributeError:
-                pass
-            self.mines_games.__delitem__(ctx.author.id)
-
+        await self.setup_game(ctx)
         self.mines_games[ctx.author.id] = await MinesGame.create(self, ctx, bet, mines=mines, timeout=30)
 
     @commands.hybrid_command(name="secretlair")
     @commands.max_concurrency(1, commands.BucketType.user, wait=False)
-    async def secretlair(self, ctx: commands.Context, bet: checks.Money) -> None:
+    async def secretlair(self, ctx: commands.Context, bet: checks.Money, danger: int = 1) -> None:
         bet: int = int(bet)
 
         if bet < 100:
             raise e.ArgumentValueError(f"Argument \"bet\" must be at least {100}!")
+        if danger < 0 or danger > 3:
+            raise e.ArgumentValueError(f"Argument \"danger\" must be between 0 and 3!")
 
-        if ctx.author.id in self.secretlair_games.keys():
-            t = self.secretlair_games[ctx.author.id]
-            if t.active:
-                raise e.MultipleInstanceError(ctx.command)
-            t.view.stop()
-            try:
-                await t.on_timeout()
-            except AttributeError:
-                pass
-            self.secretlair_games.__delitem__(ctx.author.id)
-
-        self.secretlair_games[ctx.author.id] = await SecretLairGame.create(self, ctx, bet, danger=1, timeout=60)
+        await self.setup_game(ctx)
+        self.secretlair_games[ctx.author.id] = await SecretLairGame.create(self, ctx, bet, danger=danger, timeout=60)
 
 setup: Callable = Games.setup

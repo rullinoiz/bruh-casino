@@ -24,7 +24,7 @@ class SecretLairSpace:
             self.icon: str = self.money_icons[randint(0, len(self.money_icons) - 1)]
         elif self.type == SecretLairSpace.DANGER:
             self.icon: str = self.danger_icons[randint(0, len(self.danger_icons) - 1)]
-        else:
+        elif self.type == SecretLairSpace.TORCH:
             self.icon: str = '🔦'
 
     def __str__(self) -> str:
@@ -74,10 +74,9 @@ class SecretLairBoard:
         t: list[SecretLairRow] = []
         for i in range(cls.rows):
             r: SecretLairRow = SecretLairRow(danger)
-            r.set_random_money_to_torch()
             t.append(r)
             print(r.columns)
-        #t[-1].set_random_money_to_torch()
+        t[0].set_random_money_to_torch()
         return t
 
 class SecretLairGame(BruhCasinoGame):
