@@ -10,3 +10,5 @@ serverdata.txt
 .idea/
 **/output.mp4
 **/venv/
+assets/
+..bfg-report/
