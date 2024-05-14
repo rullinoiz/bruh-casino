@@ -93,6 +93,7 @@ class Debugging(BruhCasinoCog):
             )
     
     @debug.command(name='refresh')
+    @is_developer()
     async def refresh(self, ctx: commands.Context) -> None:
         ctx.bot.tree.copy_global_to(guild=ctx.guild)
         await ctx.bot.tree.sync(guild=ctx.guild)
@@ -107,7 +108,15 @@ class Debugging(BruhCasinoCog):
             await ctx.bot.tree.sync(guild=i)
         await mtoedit.edit(content='done')
 
-    @debug.command(name='changelog',aliases=['git'])
+    @debug.command(name='sync')
+    @is_developer()
+    async def sync(self, ctx: commands.Context) -> None:
+        await ctx.defer()
+        mtoedit: discord.Message = await ctx.send('loading...')
+        await self.bot.tree.sync()
+        await mtoedit.edit(content='done')
+
+    @commands.hybrid_command(name='changelog',aliases=['git'])
     async def git(self, ctx: commands.Context) -> None:
         proc = await asyncio.create_subprocess_shell(
             'git --no-pager log --pretty=oneline --abbrev-commit --graph --decorate --all',
