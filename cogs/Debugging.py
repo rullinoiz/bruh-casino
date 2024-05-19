@@ -108,6 +108,16 @@ class Debugging(BruhCasinoCog):
             await ctx.bot.tree.sync(guild=i)
         await mtoedit.edit(content='done')
 
+    @debug.command(name='clearall')
+    @is_developer()
+    async def clearall(self, ctx: commands.Context) -> None:
+        await ctx.defer()
+        mtoedit: discord.Message = await ctx.send('clearing...')
+        async for i in self.bot.fetch_guilds():
+            ctx.bot.tree.clear_commands(guild=i)
+            await ctx.bot.tree.sync(guild=i)
+        await mtoedit.edit(content='done')
+
     @debug.command(name='sync')
     @is_developer()
     async def sync(self, ctx: commands.Context) -> None:
