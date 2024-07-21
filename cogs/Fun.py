@@ -1,6 +1,9 @@
+from io import BytesIO
+
 import asyncio
 import discord
 from discord.ext import commands
+from discord.app_commands import ContextMenu
 import time
 import random
 from typing import Optional
@@ -16,6 +19,9 @@ from modules.user_instance import user_instance
 from modules.checks import is_command_enabled, under_construction
 from modules.exceptions import BrokeError
 from modules.BruhCasinoError import BruhCasinoError
+from modules.BruhCasinoCog import BruhCasinoCog
+
+from PIL import Image
 
 random.seed(time.time_ns())
 
@@ -77,11 +83,44 @@ class SnipeFailed(BruhCasinoError):
         self.codestyle = False
         super().__init__(msg)
 
-class Fun(commands.Cog):
+class ConvertFailed(BruhCasinoError):
+    def __init__(self, msg: str = "Convert failed!") -> None:
+        self.msg = msg
+        self.codestyle = False
+        self.ephemeral = True
+        super().__init__(msg)
+
+class Fun(BruhCasinoCog):
     def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
+        super().__init__(bot)
+        self.to_gif_ctx_menu: ContextMenu = ContextMenu(
+            name="Convert Image to GIF",
+            callback=self.to_gif_ctx_menu_impl
+        )
+        self.bot.tree.add_command(self.to_gif_ctx_menu)
         self.sniped: dict = {}
         self.nexttroll: dict = {}
+
+    async def to_gif_ctx_menu_impl(self, ctx: discord.Interaction, msg: discord.Message) -> None:
+        if len(msg.attachments) != 1:
+            raise ConvertFailed("too many images sorry")
+
+        await ctx.response.defer()
+
+        gif = BytesIO()
+        img = BytesIO(await msg.attachments[0].read())
+        img.seek(0)
+        dimg = Image.open(img)
+        dimg.save(gif, format="GIF", optimize=True)
+        dgif = BytesIO(gif.getvalue())
+
+        # noinspection PyUnresolvedReferences
+        await ctx.edit_original_response(attachments=[discord.File(fp=dgif, filename="output.gif")])
+        gif.close()
+        dgif.close()
+        img.close()
+
+
 
     def get_sniped(self, _id: int, ctx:Context=None):
         if not self.sniped.get(_id):
