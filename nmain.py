@@ -53,9 +53,7 @@ class Client(commands.Bot):
 
     @staticmethod
     async def command_error(ctx: Context | Interaction, e: AppCommandError, *args, **kwargs) -> None:
-        print("on_command_error")
         f: type = type(e)
-        print(f.__name__)
         description: str
 
         e = e.__cause__ or e
@@ -67,7 +65,6 @@ class Client(commands.Bot):
         description = f"```{str(e)}```"
         if not codestyle: description = description[3:-3]
         func: Callable
-        print(description)
 
         embed: discord.Embed = BruhCasinoEmbed(
             title=type(e).__name__,

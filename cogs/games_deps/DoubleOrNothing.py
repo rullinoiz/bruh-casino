@@ -26,7 +26,7 @@ class DoubleOrNothingGame(BruhCasinoGame):
     jackpot_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621655274401802/jackpot.png'
 
     def __str__(self) -> str:
-        return f'<{self.__name__} m={self.multiplier}, a={self.active}>'
+        return f'<{self.__class__.__name__} m={self.multiplier}, a={self.active}>'
 
     async def _init(self, ctx: Interaction) -> None:
         self.ctx = ctx

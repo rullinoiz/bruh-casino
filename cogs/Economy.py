@@ -1,23 +1,20 @@
 import discord
+import time
 from discord import Interaction, app_commands
 from discord.ext import commands
 from discord.app_commands import Transform
-from modules.user.user_instance import user_instance
-from modules.user.user_sqlite import user as userdata
-from bc_common.BruhCasinoCog import EconomyBruhCasinoCog
-from bc_common.BruhCasinoError import BruhCasinoError
+from modules.user import user_instance
+from modules.user import user as userdata
+from bc_common import BruhCasinoCog, BruhCasinoEmbed, BruhCasinoError
 from modules.exceptions import RateError, Uhhhhhh
-from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.transformers import Money
 from typing import Optional
-
-import time
 
 class SingularityError(BruhCasinoError):
     def __init__(self) -> None:
         super().__init__("I appreciate the donation, but the devil doesn't take tips", codestyle=False)
 
-class Economy(EconomyBruhCasinoCog):
+class Economy(BruhCasinoCog):
 
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
@@ -48,7 +45,7 @@ class Economy(EconomyBruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def daily(self, ctx: Interaction) -> None:
         """claim daily reward"""
-        stats: user_instance = ctx.stats
+        stats: user_instance = user_instance(ctx)
 
         if (t := (stats.daily + 86400)) > time.time():
             raise RateError(
@@ -69,12 +66,13 @@ class Economy(EconomyBruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def level(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """check your level"""
+        stats: user_instance = user_instance(ctx)
 
         expincrement = self.bcfg["expincrement"]
         expstart = self.bcfg["expstart"]
 
-        level: int = ctx.stats.lvl if not user else userdata.read(user, "lvl")
-        current_exp: int = ctx.stats.exp if not user else userdata.read(user, "exp")
+        level: int = stats.lvl if not user else userdata.read(user, "lvl")
+        current_exp: int = stats.exp if not user else userdata.read(user, "exp")
         description: str = ("Your" if not user else (user.mention + "\'s")) \
             + f" level: {level}\n" \
             + f"Next level: {(level * expincrement) + expstart}\n" \
@@ -92,8 +90,9 @@ class Economy(EconomyBruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def balance(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """like a true capitalist"""
+        stats: user_instance = user_instance(ctx)
 
-        money: int = int(ctx.stats.money) if not user else userdata.read(user, 'money')
+        money: int = int(stats.money) if not user else userdata.read(user, 'money')
         description: str = f'{getattr(user, "mention", "You")} currently ha{"ve" if not user else "s"} {money} money.' \
             + (" Nice." if "69" in str(money) else "")
 
@@ -110,13 +109,14 @@ class Economy(EconomyBruhCasinoCog):
     @commands.max_concurrency(1, commands.BucketType.guild)
     @commands.cooldown(1, 3, commands.BucketType.user)
     async def pay(self, ctx: Interaction, user: discord.Member, amount: Transform[int, Money]) -> None:
+        stats: user_instance = user_instance(ctx)
         if user == ctx.user: raise Uhhhhhh()
         if user == self.bot.user: raise SingularityError()
         amount = int(amount)
 
         if amount < 0: raise Uhhhhhh()
 
-        ctx.stats.money -= amount
+        stats.money -= amount
         userdata.add(user, "money", amount)
 
         await ctx.response.send_message(embed=BruhCasinoEmbed(
@@ -130,7 +130,8 @@ class Economy(EconomyBruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def bruh(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """how many bruhs"""
-        bruhs: int = ctx.stats.bruh if not user else userdata.read(user, "bruh")
+        stats: user_instance = user_instance(ctx)
+        bruhs: int = stats.bruh if not user else userdata.read(user, "bruh")
         await ctx.response.send_message(f"{bruhs} bruhs have been had")
 
 setup = Economy.setup
