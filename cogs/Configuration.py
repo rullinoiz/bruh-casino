@@ -17,7 +17,7 @@ class Configuration(BruhCasinoCog):
     config = app_commands.Group(name="config", description="we do a little configuration")
 
     @staticmethod
-    def _to_bool(t: typing.AnyStr) -> typing.Union[bool, None]:
+    def _to_bool(t: typing.AnyStr) -> bool | None:
         print(t)
         try:
             return bool(int(t))
@@ -30,26 +30,21 @@ class Configuration(BruhCasinoCog):
         """we do a little configuration"""
         if key not in sv_data:
             self._config_options.invoke(ctx)
-        
-        if key and not val:
 
-            return
+        if sv_data[key]["type"] == "bool":
+            if self._to_bool(val) is None:
+                await ctx.response.send_message(f"value for `{key}` is not a boolean (true or false)!!!")
+                return
+            val = self._to_bool(val)
+        if sv_data[key]["type"] == "int":
+            try:
+                val = int(val)
+            except ValueError:
+                await ctx.response.send_message(f"value for `{key}` is not an integer (whole number)!!!")
+                return
 
-        if key and val:
-            if sv_data[key]["type"] == "bool":
-                if self._to_bool(val) is None:
-                    await ctx.response.send_message(f"value for `{key}` is not a boolean (true or false)!!!")
-                    return
-                val = self._to_bool(val)
-            if sv_data[key]["type"] == "int":
-                try:
-                    val = int(val)
-                except ValueError:
-                    await ctx.response.send_message(f"value for `{key}` is not an integer (whole number)!!!")
-                    return
-
-            server.write(ctx.guild.id, key, val)
-            await ctx.response.send_message(f"successfully set `{key}` to `{val}`")
+        server.write(ctx.guild.id, key, val)
+        await ctx.response.send_message(f"successfully set `{key}` to `{val}`")
 
     @config.command(name="get")
     async def _config_get(self, ctx: Interaction, key: str) -> None:
@@ -68,7 +63,7 @@ class Configuration(BruhCasinoCog):
             title="Bot Configuration",
             description='\n'.join(
                 ["- **{0}** (`{1}`): {2}".format(i, sv_data[i]["type"], sv_data[i]["desc"]) for i in
-                 server.columns]) + f'\n\nRun `{bcfg["prefix"]}config [option] [value]` to configure this bot for this server',
+                 server.columns]) + f'\n\nRun `/config set [option] [value]` to configure this bot for this server',
             color=discord.Color.orange()
         ))
            

@@ -17,6 +17,7 @@ from discord import Interaction
 from discord.app_commands import AppCommandError
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
+from discord.ext.commands.errors import CommandNotFound
 from discord.utils import MISSING
 
 from bot_config import bot_config as bcfg
@@ -51,8 +52,17 @@ class Client(commands.Bot):
         print("READY.")
         cycle_status.start()
 
+    @classmethod
+    async def on_command_error(cls, ctx: commands.Context, error: commands.CommandError, *args, **kwargs) -> None:
+        if isinstance(error, CommandNotFound):
+            await ctx.send(embed=BruhCasinoEmbed(
+                title="Use Slash Commands",
+                description="```As of 8/15/2024, you should use the slash-command equivalent of whatever you're trying to run```More information: [GitHub](https://github.com/rullinoiz/bruh-casino/commit/a084ae07ed52eb4b190a60e93184f50b287a9bfa)",
+                color=discord.Color.red()
+            ), delete_after=15)
+
     @staticmethod
-    async def command_error(ctx: Context | Interaction, e: AppCommandError, *args, **kwargs) -> None:
+    async def command_error(ctx: Context | Interaction, e: AppCommandError | commands.CommandError, *args, **kwargs) -> None:
         f: type = type(e)
         description: str
 
@@ -62,6 +72,8 @@ class Client(commands.Bot):
             print("".join(traceback.format_exception(type(e), e, e.__traceback__)))
 
         codestyle: bool = getattr(e, "codestyle", True)
+        if isinstance(e, CommandNotFound):
+            description = "```As of 8/15/2024, you should use the slash-command equivalent of whatever you're trying to run\n\nMore information: [GitHub](https://github.com/rullinoiz/bruh-casino/commit/a084ae07ed52eb4b190a60e93184f50b287a9bfa)```"
         description = f"```{str(e)}```"
         if not codestyle: description = description[3:-3]
         func: Callable
