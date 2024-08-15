@@ -1,46 +1,34 @@
-import discord
 from discord.ext import commands
-
-from bot_config import bot_config as bcfg
-
+from discord import app_commands, Interaction, Color, InteractionMessage
+from bc_common import BruhCasinoEmbed
 from modules.checks import is_developer
-from modules.BruhCasinoCog import BruhCasinoCog
+from bc_common.BruhCasinoCog import BruhCasinoCog
 
+@app_commands.guild_only()
 class Administration(BruhCasinoCog):
 
-    @commands.hybrid_command(name='slowmode', aliases=['sm','slow'])
+    @app_commands.command(name="slowmode")
     @commands.check_any(commands.has_permissions(manage_channels=True), is_developer())
-    async def slowmode(self, ctx:commands.Context, delay:int) -> None:
+    async def slowmode(self, ctx: Interaction, delay: int) -> None:
         """self explanatory"""
-
-        # if not channel.permissions_for(author).manage_channels:
-        #     await channel.send(embed=discord.Embed(
-        #             title="AccessDenied",
-        #             description="You do not have sufficient permissions to \"{0}\".".format(command),
-        #             color=discord.Color.red()
-        #         ).set_footer(text=footer)
-        #     )
-        #     return
-        
         await ctx.channel.edit(slowmode_delay=delay)
-        await self.send_or_react(ctx, "✅")
+        await ctx.response.send_message("✅")
 
-    @commands.command() # does not exit gracefully as app_command
-    @commands.check_any(commands.has_permissions(manage_channels=True),is_developer())
-    async def purge(self, ctx:commands.Context, num:int) -> None:
+    @app_commands.command()
+    @commands.check_any(commands.has_permissions(manage_channels=True), is_developer())
+    async def purge(self, ctx: Interaction, num: int) -> None:
         """delete number of previous messages"""
-        footer = bcfg['footer']
+        await ctx.response.defer(ephemeral=True)
+        m: InteractionMessage = await ctx.original_response()
 
-        async with ctx.typing():
-            await ctx.channel.purge(limit=num+1,check=lambda m: m != ctx.message)
+        await ctx.channel.purge(limit=num+1, check=lambda c: c != m)
 
-        await ctx.send(
-            embed=discord.Embed(
+        await ctx.followup.send(
+            embed=BruhCasinoEmbed(
                 title="Purge Complete",
                 description=f"All {str(num)} message(s) have been purged. Squeaky clean!",
-                color=discord.Color.green()
-            ).set_footer(text=footer),
-            delete_after=3.0
+                color=Color.green()
+            ), ephemeral=True
         )
 
 setup = Administration.setup

@@ -1,13 +1,9 @@
 from discord import Interaction, Color, ButtonStyle
 from discord.ui import Button, View
-from discord.ext import commands
-
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
-from modules.BruhCasinoGame import BruhCasinoGame
-from modules.BruhCasinoCog import BruhCasinoCog
-
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoGame import BruhCasinoGame
+from bc_common.BruhCasinoCog import BruhCasinoCog
 from math import factorial as fc
-
 from random import shuffle
 
 class MinesSpace:
@@ -33,9 +29,9 @@ class MinesBoard:
             shuffle(t)
         return t
 
-
 class MinesGame(BruhCasinoGame):
-    async def _init(self) -> None:
+    async def _init(self, ctx: Interaction) -> None:
+        self.ctx = ctx
         self.active = True
         self.board: list[MinesSpace] = MinesBoard.new(self.mines)
         for i in self.board:
@@ -46,9 +42,9 @@ class MinesGame(BruhCasinoGame):
         self.buttons = self.get_buttons()
 
         self.refresh_buttons()
-        self.message = await self.send_or_edit(embed=self.get_embed(), view=self.view)
+        await self.send_or_edit(embed=self.get_embed(), view=self.view)
 
-    def __init__(self, cog: BruhCasinoCog, ctx: commands.Context, bet: int, mines: int, *args, **kwargs) -> None:
+    def __init__(self, cog: BruhCasinoCog, ctx: Interaction, bet: int, mines: int, *args, **kwargs) -> None:
         super().__init__(cog, ctx, bet, getbuttons=False, *args, **kwargs)
 
         self.mines: int = mines
@@ -122,32 +118,32 @@ class MinesGame(BruhCasinoGame):
             await self.message.edit(view=self.view)
             del self.message
 
-    async def on_lose(self) -> None:
+    async def on_lose(self, ctx: Interaction) -> None:
         self.stats.lost(self.bet)
         self.active = False
 
-        await self.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(ctx, embed=BruhCasinoEmbed(
             title="Mines",
             description=f"you lost ${self.bet} lmao",
             color=Color.red()
         ), view=self.get_retry_button())
 
     async def on_mines_button(self, ctx: Interaction, num: int) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         if self.board[num].select():
-            return await self.on_lose()
+            return await self.on_lose(ctx)
         else:
             self.spaces_cleared += 1
             self.refresh_buttons()
-            await self.message.edit(embed=self.get_embed(), view=self.view)
+            await self.update_message(ctx, embed=self.get_embed(), view=self.view)
 
 
     async def on_cashout(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         self.stats.won(self.get_winnings() - self.bet)
         self.active = False
 
-        await self.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(ctx, embed=BruhCasinoEmbed(
             title="Mines",
             description=f"You won ${self.get_winnings()}!",
             color=Color.green()

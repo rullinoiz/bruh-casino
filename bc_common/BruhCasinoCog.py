@@ -1,12 +1,12 @@
 import asyncio
-
 import discord
-from typing import Awaitable, TypeVar, Coroutine, Any
+from discord import Interaction
+from discord.ext.commands import Context
+from typing import Awaitable, TypeVar
 from discord.ext import commands
-
-from modules.user_instance import user_instance
+from modules.user import user_instance
 from modules.exceptions import CommandTimeoutError
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
 from bot_config import bot_config as bcfg
 
 _T = TypeVar('_T')
@@ -23,7 +23,7 @@ class BruhCasinoCog(commands.Cog):
         print(f'{cls.__name__} loaded')
 
     @staticmethod
-    def send_or_react(ctx: commands.Context, message: str) -> Awaitable:
+    def send_or_react(ctx: Context, message: str) -> Awaitable:
         if ctx.interaction:
             return ctx.send(message)
         else:
@@ -32,13 +32,22 @@ class BruhCasinoCog(commands.Cog):
     @staticmethod
     def UNUSED(x: _T) -> _T: return x
 
-    async def wait_for_button(self, ctx: commands.Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> discord.Interaction:
-        def wait_for_button_check(i: discord.Interaction) -> bool:
+    @staticmethod
+    async def _send_wrapper(ctx: Context | Interaction, *args, **kwargs) -> None:
+        print("WARNING!! using send wrapper for this invocation")
+        ctx.response.send_message(*args, **kwargs)
+
+    async def cog_before_invoke(self, ctx: Context | Interaction) -> None:
+        ctx.__setattr__("send", self._send_wrapper)
+
+    async def wait_for_button(self, ctx: Context, mtoedit: discord.Message, buttons: list[discord.Button], timeout: int = 20) -> Interaction:
+        def wait_for_button_check(i: Interaction) -> bool:
             if i.type != discord.InteractionType.component or i.data['custom_id'] not in [x.custom_id for x in buttons]:
                 return False
 
-            if not (i.user.id == ctx.author.id and i.type == discord.InteractionType.component):
+            if not (i.user == ctx.author and i.type == discord.InteractionType.component):
                 response = i.response
+                # noinspection PyUnresolvedReferences
                 asyncio.create_task(response.send_message(embed=BruhCasinoEmbed(
                     title="HandsOffError",
                     description="this isn't yours bruv",
@@ -53,5 +62,6 @@ class BruhCasinoCog(commands.Cog):
             raise CommandTimeoutError(time=timeout, msg=mtoedit)
 
 class EconomyBruhCasinoCog(BruhCasinoCog):
-    async def cog_before_invoke(self, ctx:commands.Context) -> None:
+    async def cog_before_invoke(self, ctx: Context | Interaction) -> None:
+        await super().cog_before_invoke(ctx)
         ctx.stats = user_instance(ctx)

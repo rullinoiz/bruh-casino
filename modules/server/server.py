@@ -1,27 +1,13 @@
 import json as j
 import typing
+from typing import Any
 from bot_config import bot_config
 
 class server:
 
     @classmethod
     def write(cls, id:int, stat:str, content) -> None:
-        """
-        Parameters
-        ----------
-        id : INT
-            The ID of the server you want to write to.
-        stat : STR
-            The stat you want to write to.
-        content : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
-        temp = open(bot_config['serverpath'],"r")
+        temp = open(bot_config['serverpath'], "r")
         data = j.loads(str(temp.read()))
         temp.close()
         if not str(id) in data:
@@ -34,21 +20,7 @@ class server:
         temp.close()
 
     @classmethod
-    def read(cls, id:int, stat:str) -> typing.Union[str, bool]:
-        """
-        Parameters
-        ----------
-        id : INT
-            The ID of the server you want to read from.
-        stat : STR
-            The stat you want to read from the server.
-
-        Returns
-        -------
-        STR/INT
-            Read stats.
-
-        """
+    def read(cls, id:int, stat:str) -> Any:
         if id is None: return False
 
         temp = open(bot_config['serverpath'],"r")
@@ -73,19 +45,4 @@ class server:
 
     @classmethod
     def add(cls, id:int, stat:str, value:int) -> None:
-        """
-        Parameters
-        ----------
-        id : INT
-            The ID of the server you want to write to.
-        stat : STR
-            The stat you want to add to.
-        value : INT
-            How much to add to the stat.
-
-        Returns
-        -------
-        None.
-
-        """
-        server.write(id,stat,server.read(id,stat) + value)
+        server.write(id, stat, server.read(id,stat) + value)

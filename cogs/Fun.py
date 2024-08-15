@@ -1,7 +1,7 @@
 from io import BytesIO
-
 import asyncio
 import discord
+from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.app_commands import ContextMenu
 import time
@@ -10,17 +10,15 @@ from typing import Optional
 import os
 import re
 import tempfile
-import modules.attorney as attorn
-
+import modules.attorney.attorney as attorn
 from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 from modules.server import server
-from modules.user_instance import user_instance
-from modules.checks import is_command_enabled, under_construction
+from modules.user.user_instance import user_instance
+from modules.checks import under_construction
 from modules.exceptions import BrokeError
-from modules.BruhCasinoError import BruhCasinoError
-from modules.BruhCasinoCog import BruhCasinoCog
-
+from bc_common.BruhCasinoError import BruhCasinoError
+from bc_common.BruhCasinoCog import BruhCasinoCog
 from PIL import Image
 
 random.seed(time.time_ns())
@@ -101,7 +99,7 @@ class Fun(BruhCasinoCog):
         self.sniped: dict = {}
         self.nexttroll: dict = {}
 
-    async def to_gif_ctx_menu_impl(self, ctx: discord.Interaction, msg: discord.Message) -> None:
+    async def to_gif_ctx_menu_impl(self, ctx: Interaction, msg: discord.Message) -> None:
         if len(msg.attachments) != 1:
             raise ConvertFailed("too many images sorry")
 
@@ -120,9 +118,7 @@ class Fun(BruhCasinoCog):
         dgif.close()
         img.close()
 
-
-
-    def get_sniped(self, _id: int, ctx:Context=None):
+    def get_sniped(self, _id: int, ctx: Interaction = None):
         if not self.sniped.get(_id):
             self.sniped[_id]: dict = {}
 
@@ -140,7 +136,8 @@ class Fun(BruhCasinoCog):
             i in msg.content.lower() for i in ['genshin impact', 'league of legends', 'valorant', 'hunie pop', 'huniepop']
         )
 
-    async def cog_before_invoke(self, ctx: Context) -> None:
+    async def cog_before_invoke(self, ctx: Interaction) -> None:
+        await super().cog_before_invoke(ctx)
         ctx.sniped = None
         if not isinstance(ctx.channel, discord.DMChannel):
             ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
@@ -178,10 +175,9 @@ class Fun(BruhCasinoCog):
         # print([i.to_dict() for i in msg.embeds])
         # print([i.url for i in msg.attachments])
 
-    @commands.hybrid_command()
-    @is_command_enabled(command='troll')
+    @app_commands.command()
     @commands.guild_only()
-    async def troll(self, ctx: Context) -> None:
+    async def troll(self, ctx: Interaction) -> None:
         f"""epicly troll next messager in this channel for {(price := 200)} money"""
 
         if ctx.stats.money < price:
@@ -192,13 +188,12 @@ class Fun(BruhCasinoCog):
         ctx.stats.money -= price
         self.nexttroll[ctx.channel.id] = ctx.author.id
 
-        await ctx.send('troll now armed', ephemeral=True)
+        await ctx.response.send_message('troll now armed', ephemeral=True)
         print(f'troll armed in channel {ctx.channel} by {ctx.author}')
 
-    @commands.hybrid_command()
-    @is_command_enabled(command='snipe')
+    @app_commands.command()
     @commands.guild_only()
-    async def snipe(self, ctx: Context) -> None:
+    async def snipe(self, ctx: Interaction) -> None:
         if msg := ctx.sniped:
             embed = discord.Embed(
                 description=msg.content
@@ -208,47 +203,47 @@ class Fun(BruhCasinoCog):
         
         await ctx.send(embed=embed,delete_after=None if msg else 7)
 
-    @commands.hybrid_command()
+    @app_commands.command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
     async def attorney(
             self,
-            ctx: Context,
-            last_messages: commands.Range[int, 3, 50],
+            ctx: Interaction,
+            last_messages: app_commands.Range[int, 3, 50],
             channel: Optional[discord.TextChannel] = None) -> None:
         users: dict = {}
         messages: list[AttorneyComment] = []
         _channel = channel or ctx.channel
 
-        await ctx.defer()
+        await ctx.response.defer()
 
         async for i in _channel.history(limit=last_messages):
-            if i.content is None or i.content == '': continue
+            if i.content is None or i.content == "": continue
             if i.author.name not in users.keys(): users[i.author.name] = 1
             else: users[i.author.name] += 1
             messages.insert(0, AttorneyComment(i))
 
         users: list = sorted(users, reverse=True)
         scenes = await asyncio.to_thread(attorn.comments_to_scene, messages, attorn.get_characters(users))
-        mtoedit = await ctx.send('compiling video...')
+        mtoedit = await ctx.followup.send("compiling video...")
         video = await attorn.ace_attorney_anim(
             scenes,
-            vid := tempfile.NamedTemporaryFile(suffix='.mp4'),
-            aud := tempfile.NamedTemporaryFile(suffix='.mp3'),
-            file := str(_channel.id) + '.mp4',
-            logfile := open((log := tempfile.NamedTemporaryFile()).name,'r+b')
+            vid := tempfile.NamedTemporaryFile(suffix=".mp4"),
+            aud := tempfile.NamedTemporaryFile(suffix=".mp3"),
+            file := str(_channel.id) + ".mp4",
+            logfile := open((log := tempfile.NamedTemporaryFile()).name,"r+b")
         )
 
         while video.returncode is None:
             await asyncio.sleep(1)
-            logread = str(log.read())[2:-1].replace('\\n','\n')
-            await mtoedit.edit(content='```'+logread[max(0, len(logread)-500):]+'```')
+            logread = str(log.read())[2:-1].replace("\\n","\n")
+            await mtoedit.edit(content="```"+logread[max(0, len(logread)-500):]+"```")
 
         await video.wait()
         print('video done')
 
         await mtoedit.edit(
-            content='(big thanks to https://github.com/micah5/ace-attorney-reddit-bot/blob/master/anim.py)',
-            attachments=[discord.File(file, filename='attorney.mp4')],
+            content="(big thanks to https://github.com/micah5/ace-attorney-reddit-bot/blob/master/anim.py)",
+            attachments=[discord.File(file, filename="attorney.mp4")],
             embed=None
         )
 
@@ -263,14 +258,14 @@ class Fun(BruhCasinoCog):
                      pronoun: str,
                      noun: Optional[str],
                      *, adverbs: Optional[str]) -> None:
-        sentence: str = ''
-        sentence += f'consider {pronoun} '
+        sentence: str = ""
+        sentence += f"consider {pronoun} "
         if noun: sentence += f'{noun.removesuffix(",").replace("me", "you").replace("my", "your")} '
-        if not (adverbs and ' ' not in adverbs): sentence += f'{verb.removesuffix("e")}ed '
-        if adverbs and not (noun and noun.endswith(',')): sentence += f'{adverbs.split(",")[0]} '
-        if adverbs and ' ' not in adverbs: sentence += f'{verb.removesuffix("e")}ed'
+        if not (adverbs and " " not in adverbs): sentence += f'{verb.removesuffix("e")}ed '
+        if adverbs and not (noun and noun.endswith(",")): sentence += f'{adverbs.split(",")[0]} '
+        if adverbs and " " not in adverbs: sentence += f'{verb.removesuffix("e")}ed'
 
-        await ctx.send(sentence.replace('@everyone',r'\@everyone'))
+        await ctx.send(sentence.replace("@everyone",r"\@everyone"))
 
 
     @commands.hybrid_command()
@@ -282,6 +277,4 @@ class Fun(BruhCasinoCog):
                        channel: Optional[discord.TextChannel] = commands.parameter(default=lambda ctx: ctx.channel)) -> None:
         pass
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Fun(bot))
-    print('Fun loaded')
+setup = Fun.setup

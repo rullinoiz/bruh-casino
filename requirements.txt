@@ -1,14 +1,14 @@
 async_timeout>=4.0.3
-discord.py==2.3.2
+discord==2.3.2
 ffmpeg_python==0.2.0
 matplotlib==3.7.2
 moviepy==1.0.3
 numpy>=1.25.2
-opencv_python==4.8.0.76
+opencv_python==4.10.0.84
 Pillow==10.0.1
 pydub==0.25.1
 scipy==1.13.0
-spacy==3.6.1
+spacy>=3.7.5
 textblob>=0.17.1
 typing_extensions>=4.11.0
 yt_dlp>=2023.12.30

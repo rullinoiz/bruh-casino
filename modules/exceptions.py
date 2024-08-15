@@ -1,6 +1,6 @@
 from discord.ext.commands import Command
 from discord import Message
-from modules.BruhCasinoError import BruhCasinoError, EditableBruhCasinoError
+from bc_common.BruhCasinoError import BruhCasinoError, EditableBruhCasinoError
 
 class AccessDenied(BruhCasinoError):
     def __init__(self, action:str=None) -> None:

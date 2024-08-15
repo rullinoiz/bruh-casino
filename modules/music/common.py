@@ -1,25 +1,26 @@
+# https://github.com/Luffich/st-comunity-music/blob/main/music_rus.py
+
 import discord
 import time
 import math
 import asyncio
 import itertools
 import random
-
+from discord import Interaction, Member
 from discord.ext import commands
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.music.YTDLSource import YTDLSource
 from modules.music.exceptions import VoiceError
-from typing import Union, Callable
 from async_timeout import timeout
 
 class Song:
-    __slots__ = ('source', 'requester', 'startedplaying', 'paused')
+    __slots__ = ("source", "requester", "startedplaying", "paused")
 
     def __init__(self, source: YTDLSource) -> None:
         self.source: YTDLSource = source
         self.startedplaying: float = time.time()
         self.paused: bool = False
-        self.requester: Callable = source.requester
+        self.requester: Member = source.requester
 
     def pause(self) -> None:
         self.paused = True
@@ -30,12 +31,12 @@ class Song:
         self.startedplaying = time.time() - self.startedplaying
 
     def get_progress_bar(self, length: int = 32) -> list[str]:
-        progress_bar = list('-' * length)
+        progress_bar = list("-" * length)
         progress = math.floor((((
             time.time() - self.startedplaying) if not self.paused else self.startedplaying) / self.source.duration) * len(
             progress_bar))
-        progress_bar[:progress] = '=' * progress
-        progress_bar[progress] = '>' if not self.paused else '|'
+        progress_bar[:progress] = "=" * progress
+        progress_bar[progress] = ">" if not self.paused else "|"
 
         return progress_bar
 
@@ -47,11 +48,11 @@ class Song:
         duration = YTDLSource.parse_duration(self.source.duration)
 
         embed = (BruhCasinoEmbed(
-            title='now playing' if not self.paused else 'paused',
+            title="now playing" if not self.paused else "paused",
             description=f'[{self.source.title}]({self.source.url})\n```{where}{" " * (len(progress_bar) - len(where) - len(duration))}{duration}\n{"".join(progress_bar)}```',
             color=discord.Color.blurple())
-         .add_field(name='requested by', value=self.requester.mention)
-         .add_field(name='uploaded by', value='[{0.source.uploader}]({0.source.uploader_url})'.format(self))
+         .add_field(name="requested by", value=self.requester.mention)
+         .add_field(name="uploaded by", value=f"[{self.source.uploader}]({self.source.uploader_url})" if self.source.uploader_url else f"{self.source.uploader}")
          .set_thumbnail(url=self.source.thumbnail)
         )
         return embed
@@ -81,7 +82,7 @@ class SongQueue(asyncio.Queue):
 
 
 class VoiceState:
-    def __init__(self, bot: commands.Bot, ctx: commands.Context) -> None:
+    def __init__(self, bot: commands.Bot, ctx: Interaction) -> None:
         self.bot = bot
         self._ctx = ctx
 
@@ -99,7 +100,6 @@ class VoiceState:
         self.now = None
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
-        # print('voice state created')
 
     def __del__(self) -> None:
         self.audio_player.cancel()
@@ -219,7 +219,6 @@ class VoiceState:
                 self.voice.play(self.now, after=self.play_next_song)
                 self.current.startedplaying = time.time()
 
-            print(5)
             await self.next.wait()
 
     def play_next_song(self, error=None) -> None:

@@ -1,3 +1,9 @@
+# Licensed under the WTFPL-2.0 (see LICENSE.md)
+# with modifications by rullinoiz (me!!)
+
+# original source:
+# https://github.com/micah5/ace-attorney-reddit-bot/blob/master/anim.py
+
 from PIL import Image, ImageDraw, ImageFont
 from matplotlib.pyplot import imshow
 import numpy as np

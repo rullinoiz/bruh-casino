@@ -1,3 +1,6 @@
+# https://github.com/BradAJ/video_poker_analyzer/blob/master/vp_analyzer.py
+# Licensed under the AGPL-3.0 License (see LICENSE.txt)
+
 from collections import Counter
 from itertools import combinations_with_replacement, product
 from scipy.special import comb
@@ -448,7 +451,7 @@ class DiscardValue(object):
             draw5 = self._draw_for_ranks(gsize=2, cnt_held_only=False,
                                          pairing_jqka=True)
             return draw5
-        # most common card is a singleton
+        # most bc_common card is a singleton
         elif self.held_r_cnts[0][1] == 1:
             draws = self._draw_for_ranks(gsize=2, cnt_held_only=False,
                                          pairing_jqka=True)
@@ -477,7 +480,7 @@ class DiscardValue(object):
         # nothing held
         if not self.held_r_cnts:
             return self._draw_2pair(draw_cnt=5)
-        # most common card is a singleton
+        # most bc_common card is a singleton
         elif self.held_r_cnts[0][1] == 1:
             ways_cnt = 0
             if self.draw_cnt == 4:
@@ -581,7 +584,7 @@ class DiscardValue(object):
         return ways_cnt
 
     def three_kind(self):
-        # nothing held or most common card is a singleton
+        # nothing held or most bc_common card is a singleton
         if self.held_r_cnts == [] or self.held_r_cnts[0][1] == 1:
             draw = self._draw_for_ranks(gsize=3, cnt_held_only=False)
             return draw
@@ -633,7 +636,7 @@ class DiscardValue(object):
                 ways_cnt += rtrips * pair_ways
             return ways_cnt
 
-        # most common card is a singleton
+        # most bc_common card is a singleton
         elif self.held_r_cnts[0][1] == 1:
 
             if self.draw_cnt == 4:

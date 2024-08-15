@@ -1,13 +1,17 @@
+import time
+
 import discord
 from discord.ext import commands, tasks
-from discord.ui import Button,View
+from discord.ui import Button, View
+from discord import app_commands, Interaction
+from discord.app_commands import Transform
 import modules.cards as cards
-from modules.user_sqlite import user
+from modules.user.user_sqlite import user
 from bot_config import bot_config as bcfg
-from modules.videopoker import HandAnalyzer
-from modules.BruhCasinoCog import EconomyBruhCasinoCog
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
-from modules.BruhCasinoGame import BruhCasinoGame
+from modules.videopoker.videopoker import HandAnalyzer
+from bc_common.BruhCasinoCog import EconomyBruhCasinoCog
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoGame import BruhCasinoGame
 from cogs.games_deps.DoubleOrNothing import DoubleOrNothingGame
 from cogs.games_deps.Blackjack import BlackjackGame
 from cogs.games_deps.Mines import MinesGame
@@ -15,6 +19,7 @@ from cogs.games_deps.SecretLair import SecretLairGame
 from typing import Callable
 
 import modules.checks as checks
+from modules.transformers import Money
 import modules.exceptions as e
 
 import asyncio
@@ -22,32 +27,32 @@ from random import randint as random
 
 class Games(EconomyBruhCasinoCog):
 
-    async def setup_game(self, ctx: commands.Context) -> None:
+    async def setup_game(self, ctx: Interaction) -> None:
         game: dict[int, BruhCasinoGame] = getattr(self, f"{ctx.command.callback.__name__}_games")
-        if ctx.author.id in game.keys():
-            t: BruhCasinoGame = game[ctx.author.id]
+        if ctx.user.id in game.keys():
+            t: BruhCasinoGame = game[ctx.user.id]
             if t.active:
-                raise e.MultipleInstanceError(ctx.command)
+                raise e.MultipleInstanceError(ctx.command.name)
             t.view.stop()
             try:
                 await t.message.edit(view=None)
             except AttributeError:
                 pass
-            game.__delitem__(ctx.author.id)
+            game.__delitem__(ctx.user.id)
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=5)
     async def garbage_collect(self) -> None:
         t: list[dict[int, BruhCasinoGame]] = [self.double_games, self.blackjack_games, self.mines_games, self.secretlair_games]
 
-        for l in t:
-            d: list[int] = []
-            for u in l.keys():
-                game: BruhCasinoGame = l[u]
-                if not game.active and not hasattr(game, "message"):
-                    print(f"clearing {u} -> {game.__class__}")
-                    d.append(u)
-            for x in d:
-                l.__delitem__(x)
+        for entry in t:
+            to_delete: list[int] = []
+            for u in entry.keys():
+                game: BruhCasinoGame = entry[u]
+                if not game.active and not hasattr(game, "message") and game.lastactive + 30 < time.time():
+                    print(f"clearing {u} -> {game.__str__()}")
+                    to_delete.append(u)
+            for x in to_delete:
+                entry.__delitem__(x)
 
     def __init__(self, bot: discord.ext.commands.Bot) -> None:
         super().__init__(bot)
@@ -57,26 +62,27 @@ class Games(EconomyBruhCasinoCog):
         self.mines_games: dict[int, MinesGame] = {}
         self.secretlair_games: dict[int, SecretLairGame] = {}
 
-    @commands.hybrid_command(name='blackjack',aliases=['bj'])
-    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def blackjack(self, ctx: commands.Context, bet: checks.Money) -> None:
+    @app_commands.command(name="blackjack")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def blackjack(self, ctx: Interaction, bet: Transform[int, Money]) -> None:
         """blackjack gaming"""
 
         bet: int = int(bet)
 
         await self.setup_game(ctx)
-        self.blackjack_games[ctx.author.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False, timeout=30)
+        self.blackjack_games[ctx.user.id] = await BlackjackGame.create(self, ctx, bet, getbuttons=False, timeout=30)
 
-    @commands.hybrid_command(name='war')
+    @app_commands.command(name='war')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     @checks.under_construction()
-    async def war(self, ctx: commands.Context, ante: checks.Money, tie: checks.Money = 0) -> None:
+    async def war(self, ctx: commands.Context, ante: Transform[int, Money], tie: Transform[int, Money] = 0) -> None:
         """tie pays 12:1"""
         ante: int = int(ante)
         tie: int = int(tie)
 
-        if ante + tie > ctx.stats['money']:
-            raise e.BrokeError(ante+tie,ctx.stats['money'])
+        if ante + tie > ctx.stats.money:
+            raise e.BrokeError(ante + tie, ctx.stats.money)
 
         deck: cards.Deck = cards.Deck()
 
@@ -261,9 +267,11 @@ class Games(EconomyBruhCasinoCog):
             )
             return      
 
-    @commands.hybrid_command(name='flip')
+    @commands.hybrid_command(name="flip")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def flip(self, ctx: commands.Context, bet: checks.Money) -> None:
+    async def flip(self, ctx: commands.Context, bet: Transform[int, Money]) -> None:
         """flip coin for moneyz"""
         author = ctx.author
 
@@ -286,22 +294,23 @@ class Games(EconomyBruhCasinoCog):
 
         if bt[x].custom_id == msg.data['custom_id']:
             await mtoedit.edit(embed=BruhCasinoEmbed(title="Coin Flip",description="You won {0} money!".format(bet),color=discord.Color.green()),view=None)
-            user.add(author.id,('moneygained','wins','money'),(bet,1,bet))
+            user.add(author.id,('moneygained','wins','money'),(bet, 1, bet))
             print("won")
         else:
             await mtoedit.edit(embed=BruhCasinoEmbed(title="Coin Flip",description="You lost {0} money!".format(bet),color=discord.Color.red()),view=None)
-            user.add(author.id,('moneylost','loss','money'),(bet,1,-bet))
+            user.add(author.id,('moneylost','loss','money'),(bet, 1, -bet))
             print("loss")
 
-    @commands.hybrid_command(name='doubleornothing',aliases=['double','db'])
-    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    async def double(self, ctx: commands.Context, bet: checks.Money) -> None:
+    @app_commands.command(name="doubleornothing")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def double(self, ctx: Interaction, bet: Transform[int, Money]) -> None:
         """hit x10 for, like, a lot of money"""
 
         bet: int = int(bet)
 
         await self.setup_game(ctx)
-        self.double_games[ctx.author.id] = await DoubleOrNothingGame.create(self, ctx, bet, timeout=20)
+        self.double_games[ctx.user.id] = await DoubleOrNothingGame.create(self, ctx, bet, timeout=20)
 
     @commands.hybrid_command(name='videopoker')
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -381,10 +390,10 @@ class Games(EconomyBruhCasinoCog):
 
         await mtoedit.edit(embed=embed, view=None)
 
-    @commands.hybrid_command(name='mines')
-    @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
-    #@checks.arg_is_at_least(100)
-    async def mines(self, ctx: commands.Context, bet: checks.Money, mines: int = 3) -> None:
+    @app_commands.command(name="mines")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def mines(self, ctx: Interaction, bet: Transform[int, Money], mines: int = 3) -> None:
         bet: int = int(bet)
 
         if bet < 100:
@@ -394,11 +403,12 @@ class Games(EconomyBruhCasinoCog):
             raise e.ArgumentValueError(f"Argument \"mines\" must within 1 and 23!")
 
         await self.setup_game(ctx)
-        self.mines_games[ctx.author.id] = await MinesGame.create(self, ctx, bet, mines=mines, timeout=30)
+        self.mines_games[ctx.user.id] = await MinesGame.create(self, ctx, bet, mines=mines, timeout=30)
 
-    @commands.hybrid_command(name="secretlair")
-    @commands.max_concurrency(1, commands.BucketType.user, wait=False)
-    async def secretlair(self, ctx: commands.Context, bet: checks.Money, danger: int = 1) -> None:
+    @app_commands.command(name="secretlair")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def secretlair(self, ctx: Interaction, bet: Transform[int, Money], danger: int = 1) -> None:
         bet: int = int(bet)
 
         if bet < 100:
@@ -407,6 +417,6 @@ class Games(EconomyBruhCasinoCog):
             raise e.ArgumentValueError(f"Argument \"danger\" must be between 0 and 3!")
 
         await self.setup_game(ctx)
-        self.secretlair_games[ctx.author.id] = await SecretLairGame.create(self, ctx, bet, danger=danger, timeout=60)
+        self.secretlair_games[ctx.user.id] = await SecretLairGame.create(self, ctx, bet, danger=danger, timeout=60)
 
 setup: Callable = Games.setup

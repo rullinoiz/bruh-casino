@@ -1,10 +1,9 @@
-from discord import Interaction, ButtonStyle, Color, Message
-from discord.ext import commands
+from discord import Interaction, ButtonStyle, Color
 from discord.ui import Button, View
 
-from modules.BruhCasinoCog import BruhCasinoCog
-from modules.BruhCasinoGame import BruhCasinoGame
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoCog import BruhCasinoCog
+from bc_common.BruhCasinoGame import BruhCasinoGame
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
 
 from random import shuffle, randint
 from asyncio import sleep
@@ -81,22 +80,27 @@ class SecretLairBoard:
 
 class SecretLairGame(BruhCasinoGame):
 
-    def __init__(self, cog: BruhCasinoCog, ctx: commands.Context, bet: int, danger: int, *args, **kwargs) -> None:
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__} r={self.rows_cleared} d={self.danger}, t={self.torches}>"
+
+    def __init__(self, cog: BruhCasinoCog, ctx: Interaction, bet: int, danger: int, *args, **kwargs) -> None:
         super().__init__(cog, ctx, bet, getbuttons=False, *args, **kwargs)
 
+        self.board: list[SecretLairRow] = []
         self.danger: int = danger
 
-    async def _init(self) -> None:
+    async def _init(self, ctx: Interaction) -> None:
+        self.ctx = ctx
         self.active: bool = True
         self.rows_cleared: int = 0
         self.current_row: int = 0
         self.torches: int = getattr(self, "torches", 0)
-        self.board: list[SecretLairRow] = SecretLairBoard.new(self.danger)
+        self.board = SecretLairBoard.new(self.danger)
 
         self.buttons: list[Button] = self.get_buttons()
 
         self.refresh_buttons()
-        self.message: Message = await self.send_or_edit(embed=self.get_embed(), view=self.view)
+        await self.send_or_edit(embed=self.get_embed(), view=self.view)
 
     def get_embed(self) -> BruhCasinoEmbed:
         return BruhCasinoEmbed(
@@ -121,7 +125,6 @@ class SecretLairGame(BruhCasinoGame):
         t[-1].callback = self.on_cashout
         t.append(Button(label=f"Torch (x{self.torches})", row=1, disabled=self.torches == 0))
         t[-1].callback = self.on_use_torch
-
         return t
 
     def get_row(self) -> int:
@@ -173,12 +176,12 @@ class SecretLairGame(BruhCasinoGame):
         return round(self.get_multiplier() * self.bet)
 
     async def on_button_click(self, ctx: Interaction, column: int) -> None:
-        await ctx.response.defer()
-        row: int = (self.current_row % SecretLairBoard.rows)
+        self.ctx = ctx
+        #row: int = (self.current_row % SecretLairBoard.rows)
         space: SecretLairSpace = self.board[self.get_row()][column]
 
         if not space.select():
-            return await self.on_lose()
+            return await self.on_lose(ctx)
         elif space.type == SecretLairSpace.MONEY:
             self.rows_cleared += 1
 
@@ -195,11 +198,10 @@ class SecretLairGame(BruhCasinoGame):
             self.buttons[-2].disabled = True
             self.refresh_buttons()
 
-            await self.message.edit(embed=e, view=self.view)
+            await self.update_message(embed=e, view=self.view)
             await sleep(5)
             self.board = SecretLairBoard.new(self.danger)
             e = self.get_embed()
-
 
         self.current_row += 1
 
@@ -208,35 +210,34 @@ class SecretLairGame(BruhCasinoGame):
         self.buttons[-2].disabled = False
         self.refresh_buttons()
 
-        await self.message.edit(embed=e, view=self.view)
+        await self.update_message(ctx, embed=e, view=self.view)
 
-    async def on_lose(self) -> None:
+    async def on_lose(self, ctx: Interaction) -> None:
         self.active = False
         self.stats.lost(self.bet)
         self.update_buttons(show_all=True, end_game=True)
         self.refresh_buttons()
-        await self.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(ctx, embed=BruhCasinoEmbed(
             title="Secret Lair",
             description=f"you lost ${self.bet} lmao",
             color=Color.red()
         ), view=self.get_retry_button())
 
     async def on_cashout(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
-
+        self.ctx = ctx
         self.active = False
         self.stats.won(self.get_cashout() - self.bet)
 
         self.update_buttons(show_all=True, end_game=True)
         self.refresh_buttons()
-        await self.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(ctx, embed=BruhCasinoEmbed(
             title="Secret Lair",
             description=f"You won ${self.get_cashout()}!",
             color=Color.green()
         ), view=self.get_retry_button())
 
     async def on_use_torch(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         e: BruhCasinoEmbed = self.get_embed()
 
         if self.board[self.get_row()].revealed:
@@ -248,7 +249,7 @@ class SecretLairGame(BruhCasinoGame):
 
         self.update_buttons()
         self.refresh_buttons()
-        await self.message.edit(embed=e, view=self.view)
+        await self.update_message(ctx, embed=e, view=self.view)
 
     async def on_timeout(self) -> None:
         if self.active:

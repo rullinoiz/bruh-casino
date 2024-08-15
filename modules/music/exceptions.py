@@ -1,3 +1,5 @@
+# https://github.com/Luffich/st-comunity-music/blob/main/music_rus.py
+
 from modules.exceptions import BruhCasinoError
 
 class VoiceError(BruhCasinoError):

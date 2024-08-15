@@ -1,7 +1,7 @@
-from discord.ext import commands
+from discord.app_commands import AppCommandError
 from discord import Message
 
-class BruhCasinoError(commands.CommandError):
+class BruhCasinoError(AppCommandError):
     def __init__(self,
                  msg: str = 'Exception Raised!',
                  codestyle: bool = False) -> None:

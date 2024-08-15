@@ -1,13 +1,14 @@
 import discord
+from discord import Interaction, app_commands
 from discord.ext import commands
-
-from modules.user_instance import user_instance
-from modules.user_sqlite import user as userdata
-from modules.BruhCasinoCog import EconomyBruhCasinoCog
-from modules.BruhCasinoError import BruhCasinoError
+from discord.app_commands import Transform
+from modules.user.user_instance import user_instance
+from modules.user.user_sqlite import user as userdata
+from bc_common.BruhCasinoCog import EconomyBruhCasinoCog
+from bc_common.BruhCasinoError import BruhCasinoError
 from modules.exceptions import RateError, Uhhhhhh
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
-from modules.checks import Money
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
+from modules.transformers import Money
 from typing import Optional
 
 import time
@@ -21,114 +22,115 @@ class Economy(EconomyBruhCasinoCog):
     def __init__(self, bot: commands.Bot) -> None:
         super().__init__(bot)
         self.profile_ctx_menu = discord.app_commands.ContextMenu(
-            name='View Profile',
+            name="View Profile",
             callback=self.profile_ctx_menu_impl
         )
         self.bot.tree.add_command(self.profile_ctx_menu)
 
-    async def profile_ctx_menu_impl(self, ctx: discord.Interaction, user: discord.Member) -> None:
-        t = userdata.read(user,('money','lvl','bruh','wins','loss','moneygained','moneylost'))
+    async def profile_ctx_menu_impl(self, ctx: Interaction, user: discord.Member) -> None:
+        t = userdata.read(user,("money","lvl","bruh","wins","loss","moneygained","moneylost"))
         (money,level,bruhs,wins,loss,moneygained,moneylost) = t
 
-        description = f'''{user.mention}\'s profile:
+        description = f"""{user.mention}\'s profile:
         Money: {money}
         Level: {level}
         Bruhs: {bruhs}
         Wins: {wins}
         Losses: {loss}
         Money Won: {moneygained}
-        Money Lost: {moneylost}'''
+        Money Lost: {moneylost}"""
 
         # noinspection PyUnresolvedReferences
-        await ctx.response.send_message(embed=discord.Embed(description=description).set_footer(text=self.bcfg['footer']))
+        await ctx.response.send_message(embed=BruhCasinoEmbed(description=description))
 
-    @commands.hybrid_command(name='daily', aliases=['day'])
-    async def daily(self, ctx: commands.Context) -> None:
+    @app_commands.command(name="daily")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def daily(self, ctx: Interaction) -> None:
         """claim daily reward"""
         stats: user_instance = ctx.stats
 
-        footer = self.bcfg['footer']
-        dailymoney = self.bcfg['dailymoney']
-
         if (t := (stats.daily + 86400)) > time.time():
             raise RateError(
-                msg=f'You have already claimed your daily reward. You can claim it again <t:{int(t)}:R>.'
+                msg=f"You have already claimed your daily reward. You can claim it again <t:{int(t)}:R>."
             )
         else:
             stats.money += stats.lvl * 100
-            await ctx.send(embed=discord.Embed(
+            await ctx.response.send_message(embed=BruhCasinoEmbed(
                     title="Daily Reward",
-                    description=f'You have claimed your daily reward! You got {stats.lvl * 100} money.',
+                    description=f"You have claimed your daily reward! You got {stats.lvl * 100} money.",
                     color=discord.Color.green(),
-                ).set_footer(text=footer)
+                )
             )
-            stats['daily'] = time.time()
+            stats.daily = time.time()
 
-    @commands.hybrid_command(name='level', aliases=['rank'])
-    async def level(self, ctx: commands.Context, user:discord.Member=None) -> None:
+    @app_commands.command(name="level")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def level(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """check your level"""
 
-        footer = self.bcfg['footer']
-        expincrement = self.bcfg['expincrement']
-        expstart = self.bcfg['expstart']
+        expincrement = self.bcfg["expincrement"]
+        expstart = self.bcfg["expstart"]
 
-        level: int = ctx.stats.lvl if not user else userdata.read(user, 'lvl')
-        current_exp: int = ctx.stats.exp if not user else userdata.read(user, 'exp')
-        description: str = ("Your" if not user else (user.mention + '\'s')) \
-            + f' level: {level}\n' \
-            + f'Next level: {(level * expincrement) + expstart}\n' \
-            + f'Current EXP: {current_exp}'
+        level: int = ctx.stats.lvl if not user else userdata.read(user, "lvl")
+        current_exp: int = ctx.stats.exp if not user else userdata.read(user, "exp")
+        description: str = ("Your" if not user else (user.mention + "\'s")) \
+            + f" level: {level}\n" \
+            + f"Next level: {(level * expincrement) + expstart}\n" \
+            + f"Current EXP: {current_exp}"
 
-        await ctx.send(
-            embed=discord.Embed(
+        await ctx.response.send_message(
+            embed=BruhCasinoEmbed(
                 title="Level",
                 description=description
-            ).set_footer(text=footer)
+            )
         )
 
-    @commands.hybrid_command(name='balance', aliases=['bal','bank'])
-    async def balance(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:
+    @app_commands.command(name="balance")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def balance(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """like a true capitalist"""
-
-        footer = self.bcfg['footer']
 
         money: int = int(ctx.stats.money) if not user else userdata.read(user, 'money')
         description: str = f'{getattr(user, "mention", "You")} currently ha{"ve" if not user else "s"} {money} money.' \
-            + (' Nice.' if '69' in str(money) else '')
+            + (" Nice." if "69" in str(money) else "")
 
-        send = getattr(t := getattr(ctx, 'send', getattr(ctx, 'response', None)), 'send_message', t)
-
-        await send(embed=BruhCasinoEmbed(
+        await ctx.response.send_message(embed=BruhCasinoEmbed(
                 title="Bank",
                 description=description,
                 color=discord.Color.orange(),
-            ).set_footer(text=footer),
-            #ephemeral=getattr(ctx, 'from_ctx_menu', False)
+            ),
         )
 
-    @commands.hybrid_command(name='pay')
+    @app_commands.command(name="pay")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.max_concurrency(1, commands.BucketType.guild)
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def pay(self, ctx: commands.Context, user: discord.Member, amount: Money) -> None:
-        if user == ctx.author: raise Uhhhhhh()
+    async def pay(self, ctx: Interaction, user: discord.Member, amount: Transform[int, Money]) -> None:
+        if user == ctx.user: raise Uhhhhhh()
         if user == self.bot.user: raise SingularityError()
         amount = int(amount)
 
         if amount < 0: raise Uhhhhhh()
 
-        ctx.stats['money'] -= amount
-        userdata.add(user, 'money', amount)
+        ctx.stats.money -= amount
+        userdata.add(user, "money", amount)
 
-        await ctx.send(embed=BruhCasinoEmbed(
+        await ctx.response.send_message(embed=BruhCasinoEmbed(
             title="Payment Successful",
             description=f"${amount} has been sent to {user.mention}",
             color=discord.Color.green()
         ))
 
-    @commands.hybrid_command()
-    async def bruh(self, ctx: commands.Context, user: Optional[discord.Member]) -> None:
+    @app_commands.command()
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    async def bruh(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
         """how many bruhs"""
-        bruhs: int = ctx.stats.bruh if not user else userdata.read(user, 'bruh')
-        await ctx.send(f'{bruhs} bruhs have been had')
+        bruhs: int = ctx.stats.bruh if not user else userdata.read(user, "bruh")
+        await ctx.response.send_message(f"{bruhs} bruhs have been had")
 
 setup = Economy.setup

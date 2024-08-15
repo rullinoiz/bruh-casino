@@ -1,3 +1,5 @@
+# https://github.com/Luffich/st-comunity-music/blob/main/music_rus.py
+
 import discord
 import yt_dlp as youtube_dl
 import asyncio
@@ -5,8 +7,7 @@ import typing
 import functools
 import modules.exceptions as exceptions
 import time
-
-from discord.ext import commands
+from discord import Interaction
 from modules.music.exceptions import YTDLError
 
 T = typing.TypeVar('T', bound='YTDLSource')
@@ -35,11 +36,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict,
+    def __init__(self, ctx: Interaction, source: discord.FFmpegPCMAudio, *, data: dict,
                  volume: float = 0.5) -> None:
         super().__init__(source, volume)
 
-        self.requester = ctx.author
+        self.requester = ctx.user
         self.channel = ctx.channel
         self.data = data
 
@@ -48,7 +49,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         date = data.get('upload_date')
         self.upload_date = date[6:8] + '.' + date[4:6] + '.' + date[0:4]
         self.title = data.get('title')
-        print(self.title)
         self.thumbnail = data.get('thumbnail')
         self.description = data.get('description')
         self.duration = int(data.get('duration'))
@@ -63,7 +63,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '**{0.title}** by **{0.uploader}**'.format(self)
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: typing.Union[asyncio.BaseEventLoop, asyncio.AbstractEventLoop] = None) -> typing.Union[T, list[T]]:
+    async def create_source(cls, ctx: Interaction, search: str, *, loop: asyncio.BaseEventLoop | asyncio.AbstractEventLoop = None) -> typing.Union[T, list[T]]:
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(cls.ytdl.extract_info, search, download=False)
@@ -112,80 +112,80 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
 
-    @classmethod
-    async def search_source(cls, bot, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
-        channel = ctx.channel
-        loop = loop or asyncio.get_event_loop()
-
-        cls.search_query = '%s%s:%s' % ('ytsearch', 10, ''.join(search))
-
-        partial = functools.partial(cls.ytdl.extract_info, cls.search_query, download=False, process=False)
-        info = await loop.run_in_executor(None, partial)
-
-        search: dict = {
-            'title': f'Search results for:\n**{search}**',
-            'type': 'rich',
-            'color': 7506394,
-            'author': {
-                'name': f'{ctx.author.name}',
-                'url': f'{ctx.author.display_avatar.url}',
-                'icon_url': f'{ctx.author.display_avatar.url}'
-            }
-        }
-
-        lst = []
-
-        i = 1
-        print('a')
-        entries = list(info['entries'])
-        for e in entries:
-            # lst.append(f'`{info["entries"].index(e) + 1}.` {e.get("title")} **[{YTDLSource.parse_duration(int(e.get("duration")))}]**\n')
-            VId = e.get('id')
-            VUrl = 'https://www.youtube.com/watch?v=%s' % VId
-            lst.append(f'`{i}.` [{e.get("title")}]({VUrl})\n')
-            i += 1
-
-        del i
-
-        lst.append('\n**yype `cancel` to exit**')
-        search["description"] = "\n".join(lst)
-
-        em = discord.Embed.from_dict(search)
-        await ctx.send(embed=em, delete_after=45.0)
-
-        def check(msg):
-            return msg.content.isdigit() and msg.channel == channel or msg.content == 'cancel' or msg.content == 'Cancel'
-
-        try:
-            m = await bot.wait_for('message', check=check, timeout=45.0)
-
-        except asyncio.TimeoutError:
-            rtrn = 'timeout'
-
-        else:
-            if m.content.isdigit():
-                sel = int(m.content)
-                if 0 < sel <= 10:
-                    """data = value[sel - 1]"""
-                    value = entries
-                    print('b')
-                    print(value)
-                    VId = list(value)[sel - 1]['id']
-                    VUrl = 'https://www.youtube.com/watch?v=%s' % VId
-                    partial = functools.partial(cls.ytdl.extract_info, VUrl, download=False)
-                    data = await loop.run_in_executor(None, partial)
-                    rtrn = cls(ctx, discord.FFmpegPCMAudio(data['url'], **cls.FFMPEG_OPTIONS), data=data)
-                else:
-                    rtrn = 'sel_invalid'
-            elif m.content == 'cancel':
-                rtrn = 'cancel'
-            else:
-                rtrn = 'sel_invalid'
-
-        return rtrn
+    # @classmethod
+    # async def search_source(cls, bot, ctx: Interaction, search: str, *, loop: asyncio.BaseEventLoop = None):
+    #     channel = ctx.channel
+    #     loop = loop or asyncio.get_event_loop()
+    #
+    #     cls.search_query = '%s%s:%s' % ('ytsearch', 10, ''.join(search))
+    #
+    #     partial = functools.partial(cls.ytdl.extract_info, cls.search_query, download=False, process=False)
+    #     info = await loop.run_in_executor(None, partial)
+    #
+    #     search: dict = {
+    #         'title': f'Search results for:\n**{search}**',
+    #         'type': 'rich',
+    #         'color': 7506394,
+    #         'author': {
+    #             'name': f'{ctx.user.name}',
+    #             'url': f'{ctx.user.display_avatar.url}',
+    #             'icon_url': f'{ctx.user.display_avatar.url}'
+    #         }
+    #     }
+    #
+    #     lst = []
+    #
+    #     i = 1
+    #     print('a')
+    #     entries = list(info['entries'])
+    #     for e in entries:
+    #         # lst.append(f'`{info["entries"].index(e) + 1}.` {e.get("title")} **[{YTDLSource.parse_duration(int(e.get("duration")))}]**\n')
+    #         VId = e.get('id')
+    #         VUrl = 'https://www.youtube.com/watch?v=%s' % VId
+    #         lst.append(f'`{i}.` [{e.get("title")}]({VUrl})\n')
+    #         i += 1
+    #
+    #     del i
+    #
+    #     lst.append('\n**yype `cancel` to exit**')
+    #     search["description"] = "\n".join(lst)
+    #
+    #     em = discord.Embed.from_dict(search)
+    #     await ctx.response.send_message(embed=em, delete_after=45.0)
+    #
+    #     def check(msg):
+    #         return msg.content.isdigit() and msg.channel == channel or msg.content == 'cancel' or msg.content == 'Cancel'
+    #
+    #     try:
+    #         m = await bot.wait_for('message', check=check, timeout=45.0)
+    #
+    #     except asyncio.TimeoutError:
+    #         rtrn = 'timeout'
+    #
+    #     else:
+    #         if m.content.isdigit():
+    #             sel = int(m.content)
+    #             if 0 < sel <= 10:
+    #                 """data = value[sel - 1]"""
+    #                 value = entries
+    #                 print('b')
+    #                 print(value)
+    #                 VId = list(value)[sel - 1]['id']
+    #                 VUrl = 'https://www.youtube.com/watch?v=%s' % VId
+    #                 partial = functools.partial(cls.ytdl.extract_info, VUrl, download=False)
+    #                 data = await loop.run_in_executor(None, partial)
+    #                 rtrn = cls(ctx, discord.FFmpegPCMAudio(data['url'], **cls.FFMPEG_OPTIONS), data=data)
+    #             else:
+    #                 rtrn = 'sel_invalid'
+    #         elif m.content == 'cancel':
+    #             rtrn = 'cancel'
+    #         else:
+    #             rtrn = 'sel_invalid'
+    #
+    #     return rtrn
 
     @staticmethod
-    def parse_duration(duration: typing.Union[int, float]) -> str:
+    def parse_duration(duration: int | float) -> str:
         if duration > 0:
             # minutes, seconds = divmod(duration, 60)
             # hours, minutes = divmod(minutes, 60)

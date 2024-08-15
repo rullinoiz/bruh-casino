@@ -6,7 +6,7 @@ bot_config = {
     "footer":"© rullinoiz - {0}".format(subprocess.run(['git','log','--pretty=format:"commit: %h"','-1'], capture_output=True, text=True).stdout[1:-1]),
     "version":"40%",
     "datapath":"user.db",
-    "serverpath":"serverdata.txt",
+    "serverpath":"serverdata.db",
     "botlogs":"botlogs.txt",
     "dailymoney":500,
     "expincrement":50,
@@ -22,7 +22,7 @@ bot_config = {
             "type": "bool"
         },
         "bruhreact": {
-            "desc": "Set whether the bot reacts to any message with the word \"bruh\" in it. Best left off.",
+            "desc": "Set whether the bot reacts to any message with the word \"bruh\" in it",
             "type": "bool",
         },
         "speech_bubble": {
@@ -41,39 +41,6 @@ bot_config = {
             "desc": "Set whether levelup messages are deleted after some time",
             "type": "bool",
         },
-        "enable_snipe": {
-            "desc": "enables the +snipe command which sends the last deleted message in the server",
-            "type": "bool"
-        },
-        "enable_troll": {
-            "desc": "enables the +troll command which epicly speech bubbles the next messager",
-            "type": "bool"
-        }
-    },
-    "default_template":{
-        "money": 1000,
-        "moneylost": 0,
-        "moneygained": 0,
-        "wins": 0,
-        "loss": 0,
-        "exp": 0,
-        "lvl": 0,
-        "bruh": 0,
-        "calc": 10,
-        "dateused": time.time(),
-        "daily": 0,
-        "lastmsg": time.time()
-    },
-    "default_template_server":{
-        "levelmsg": "funny man {user} just got to level {level}",
-        "levelup_announce": True,
-        "bruhreact": False,
-        "speech_bubble": True,
-        "lingering_levelup": True,
-        "i_saw_what_you_deleted": True,
-        "enable_snipe": True,
-        "enable_troll": True,
-        "lowtiergod": True,
     },
     "le_admin":441422344851030046
 }

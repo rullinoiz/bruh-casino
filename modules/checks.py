@@ -2,7 +2,7 @@ import math
 import discord
 from discord.ext.commands import Context, check, Converter, CommandError
 import modules.exceptions as e
-from modules.user_sqlite import user
+from modules.user import user
 from typing import *
 from modules.server import server
 

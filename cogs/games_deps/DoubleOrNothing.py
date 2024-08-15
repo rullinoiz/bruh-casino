@@ -1,8 +1,8 @@
 from discord import Interaction, Color
 from discord.ui import Button
 
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
-from modules.BruhCasinoGame import BruhCasinoGame
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoGame import BruhCasinoGame
 
 from random import randint as random
 
@@ -26,19 +26,20 @@ class DoubleOrNothingGame(BruhCasinoGame):
     jackpot_image: str = 'https://cdn.discordapp.com/attachments/1116943999824035882/1121621655274401802/jackpot.png'
 
     def __str__(self) -> str:
-        return f'<DoubleOrNothingGame m={self.multiplier}, a={self.active}>'
+        return f'<{self.__name__} m={self.multiplier}, a={self.active}>'
 
-    async def _init(self) -> None:
+    async def _init(self, ctx: Interaction) -> None:
+        self.ctx = ctx
         self.active: bool = True
         self.multiplier: int = 0
 
-        if not hasattr(self, "message"):
+        if not self.message:
             self.refresh_buttons()
-            self.message = await self.ctx.send(embed=self.get_embed(), view=self.view)
+            await self.send_or_edit(embed=self.get_embed(), view=self.view)
         else:
             self.buttons[1].disabled = True
             self.refresh_buttons()
-            await self.message.edit(embed=self.get_embed(), view=self.view)
+            await self.send_or_edit(embed=self.get_embed(), view=self.view)
 
     def get_buttons(self) -> list[Button]:
         t: list[Button] = [Button(label="Double"), Button(label="Cash Out", disabled=True)]
@@ -54,15 +55,14 @@ class DoubleOrNothingGame(BruhCasinoGame):
         ).set_image(url=self.multiplier_image[self.multiplier])
 
     @classmethod
-    def roll(cls) -> bool:
-        return random(0, 100) < cls.chance
+    def roll(cls) -> bool: return random(0, 100) < cls.chance
 
     def get_cashout(self) -> int:
         if self.multiplier == 0: return 0
         return self.bet * (2 ** (self.multiplier - 1))
 
     async def on_double(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         self.buttons[1].disabled = False
         self.refresh_buttons()
 
@@ -71,11 +71,11 @@ class DoubleOrNothingGame(BruhCasinoGame):
             if self.multiplier == 10:
                 return await self.on_jackpot(ctx)
 
-            await ctx.message.edit(embed=self.get_embed(), view=self.view)
+            await self.update_message(ctx, embed=self.get_embed(), view=self.view)
         else:
             self.active = False
             self.stats.lost(self.bet)
-            await ctx.message.edit(embed=BruhCasinoEmbed(
+            await self.update_message(ctx, embed=BruhCasinoEmbed(
                 title="Double or Nothing",
                 description=f"you lost ${self.bet} lmao",
                 color=Color.red())
@@ -84,10 +84,10 @@ class DoubleOrNothingGame(BruhCasinoGame):
             )
 
     async def on_cashout(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         self.active = False
         self.stats.won(self.get_cashout())
-        await ctx.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(embed=BruhCasinoEmbed(
             title="Double or Nothing",
             description=f"You cashed out for ${self.get_cashout()}!",
             color=Color.green()
@@ -96,13 +96,13 @@ class DoubleOrNothingGame(BruhCasinoGame):
         )
 
     async def on_jackpot(self, ctx: Interaction) -> None:
+        self.ctx = ctx
         self.active = False
         self.stats.won(self.jackpot * self.bet)
-        await ctx.message.edit(embed=BruhCasinoEmbed(
+        await self.update_message(embed=BruhCasinoEmbed(
             title="Double or Nothing",
             description=f"You won a jackpot of ${self.jackpot * self.bet}!",
             color=Color.yellow()
         ).set_image(url=self.jackpot_image),
             view=self.get_retry_button()
         )
-

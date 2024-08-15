@@ -1,10 +1,10 @@
-from modules.user_sqlite import user
+from modules.user.user_sqlite import user
 
 class UserStat(object):
+    __name__ = "UserStat"
+    # __slots__ = ('id', 'stat')
 
-    __slots__ = ('id', 'stat')
-
-    def __init__(self, userid:int, stat:str) -> None:
+    def __init__(self, userid: int, stat: str) -> None:
         self.id: int = userid
         self.stat: str = stat
 
@@ -34,6 +34,9 @@ class UserStat(object):
 
     def __le__(self, o: int) -> bool:
         return user.read_from_stat(self) <= o
+
+    def __bool__(self) -> bool:
+        return bool(user.read_from_stat(self))
 
     def __int__(self) -> int:
         return int(user.read_from_stat(self))

@@ -1,8 +1,6 @@
 import asyncio
-from typing import Callable
-
-from modules.BruhCasinoGame import BruhCasinoGame
-from modules.BruhCasinoEmbed import BruhCasinoEmbed
+from bc_common.BruhCasinoGame import BruhCasinoGame
+from bc_common.BruhCasinoEmbed import BruhCasinoEmbed
 from modules.cards import Deck, BlackjackHand
 
 from discord.ui import Button, View
@@ -18,12 +16,13 @@ class BlackjackGame(BruhCasinoGame):
     def current_hand(self) -> BlackjackHand:
         return self.player[self.current]
 
-    async def _init(self) -> None:
+    async def _init(self, ctx: Interaction) -> None:
+        self.ctx = ctx
         self.active: bool = True
         self.deck: Deck = Deck(decks=2)
         self.deck.shuffle()
 
-        self.stats['money'] -= self.bet
+        self.stats.money -= self.bet
 
         self.dealer: BlackjackHand = BlackjackHand(deck=self.deck.draw(2))
         self.player: list[BlackjackHand] = [BlackjackHand(deck=self.deck.draw(2))]
@@ -31,11 +30,9 @@ class BlackjackGame(BruhCasinoGame):
         self.current: int = 0
         self.embed: BruhCasinoEmbed = BruhCasinoEmbed(title="Blackjack", description=f"Click hit, stand, double down, or split within {self.view.timeout} seconds.", color=Color.orange())
 
-        t: Callable = self.ctx.send if not hasattr(self, "message") else self.message.edit
-
         if self.dealer.is_blackjack() and not self.current_hand.is_blackjack():
             self.stats.add(('moneylost', 'loss'), (self.bet, 1))
-            self.message = await t(embed=BruhCasinoEmbed(
+            await self.send_or_edit(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description=f"Dealer has blackjack! You lost {self.bet} money.",
                 color=Color.red()
@@ -48,7 +45,7 @@ class BlackjackGame(BruhCasinoGame):
             ), view=self.get_retry_button())
         elif self.current_hand.is_blackjack() and not self.dealer.is_blackjack():
             self.stats.add(('money','moneygained', 'wins'), (self.bet + self.bet * self.blackjack_payout, self.bet * self.blackjack_payout, 1))
-            self.message = await t(embed=BruhCasinoEmbed(
+            await self.send_or_edit(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description=f"You have blackjack! You won {self.bet * self.blackjack_payout} money!",
                 color=Color.green()
@@ -60,8 +57,8 @@ class BlackjackGame(BruhCasinoGame):
                 value=str(self.current_hand)
             ), view=self.get_retry_button())
         elif self.current_hand.is_blackjack() and self.dealer.is_blackjack():
-            self.stats["money"] += self.bet
-            self.message = await t(embed=BruhCasinoEmbed(
+            self.stats.money += self.bet
+            await self.send_or_edit(embed=BruhCasinoEmbed(
                 title="Blackjack",
                 description="It's a tie! No one wins.",
                 color=Color.orange()
@@ -75,15 +72,13 @@ class BlackjackGame(BruhCasinoGame):
         else:
             self.refresh_embed()
             self.refresh_buttons()
-            self.message = await t(embed=self.embed, view=self.view)
+            await self.send_or_edit(embed=self.embed, view=self.view)
 
     def refresh_embed(self):
-        self.embed.clear_fields() \
-        .add_field(
+        self.embed.clear_fields().add_field(
             name="Dealer (?)",
             value=f"? {self.dealer[1]}"
-        ) \
-        .add_field(
+        ).add_field(
             name=f"You ({int(self.current_hand)})",
             value=self.listHands()
         )
@@ -94,7 +89,7 @@ class BlackjackGame(BruhCasinoGame):
 
     def get_retry_button(self) -> View:
         v: View = super().get_retry_button()
-        if self.stats["money"] >= self.bet * 2:
+        if self.stats.money >= self.bet * 2:
             b: Button = Button(label=f"Top Up (${self.bet * 2})")
             b.callback = self.on_ride
             v.add_item(b)
@@ -126,7 +121,7 @@ class BlackjackGame(BruhCasinoGame):
         self.buttons = self.get_buttons()
         super().refresh_buttons()
 
-    async def calculate_hands(self) -> None:
+    async def calculate_hands(self, ctx: Interaction) -> None:
         toSend: list[str] = []
         moneyWon: int = 0
         gameWorth: int = 0
@@ -140,7 +135,7 @@ class BlackjackGame(BruhCasinoGame):
             elif int(d) < int(self.dealer):
                 toSend.append(f'{"🟥" if len(self.player) > 1 else ""}{str(d)}')
             elif int(d) == int(self.dealer):
-                toSend.append(f'{"🟨" if len(self.player) > 1 else ""}{str(d)}')
+                toSend.append(f'{"" if len(self.player) > 1 else ""}{str(d)}')
                 moneyWon += self.bet * 2 if d.doubled else self.bet
 
         if moneyWon < gameWorth:
@@ -156,7 +151,7 @@ class BlackjackGame(BruhCasinoGame):
             self.embed.color = Color.green()
             self.stats.add(('money','moneygained','wins'),(moneyWon,moneyWon-gameWorth,1))
 
-        await self.message.edit(embed=self.embed.clear_fields()
+        await self.update_message(ctx, embed=self.embed.clear_fields()
         .add_field(
             name="Dealer ({0})".format(self.dealer.toVal()),
             value=str(self.dealer)
@@ -167,10 +162,10 @@ class BlackjackGame(BruhCasinoGame):
             view=self.get_retry_button()
         )
 
-    async def run_dealer(self) -> None:
+    async def run_dealer(self, ctx: Interaction) -> None:
         while not self.dealer.busted and self.dealer.__int__() < self.dealer_stands_at:
             self.embed.description = "Waiting for dealer..."
-            await self.message.edit(embed=self.embed.clear_fields()
+            await self.update_message(ctx, embed=self.embed.clear_fields()
                 .add_field(
                     name=f"Dealer ({self.dealer.toVal()})",
                     value=str(self.dealer)
@@ -184,24 +179,24 @@ class BlackjackGame(BruhCasinoGame):
             await asyncio.sleep(1)
             self.dealer.append(self.deck.draw())
 
-        await self.calculate_hands()
+        await self.calculate_hands(ctx)
 
-    async def on_busted(self) -> None:
+    async def on_busted(self, ctx: Interaction) -> None:
         self.refresh_embed()
         self.embed.description = f"Bust! You lost ${self.bet}."
         self.embed.color = Color.red()
-        await self.message.edit(embed=self.embed, view=self.get_retry_button())
+        await self.update_message(ctx, embed=self.embed, view=self.get_retry_button())
 
     async def on_hit(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         self.current_hand.append(self.deck.draw())
 
         if self.current_hand.busted:
             if self.player.__len__() == 1:
-                return await self.on_busted()
+                return await self.on_busted(ctx)
 
             if self.player.__len__() == self.current + 1:
-                return await self.run_dealer()
+                return await self.run_dealer(ctx)
             else:
                 self.current += 1
 
@@ -209,37 +204,31 @@ class BlackjackGame(BruhCasinoGame):
 
         self.refresh_embed()
         self.refresh_buttons()
-        await self.message.edit(embed=self.embed, view=self.view)
+        await self.update_message(ctx, embed=self.embed, view=self.view)
 
     async def on_stand(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
+        self.ctx = ctx
         if self.player.__len__() == 1:
-            return await self.run_dealer()
+            return await self.run_dealer(ctx)
 
-        if self.player.__len__() == self.current + 1:
-            return await self.run_dealer()
-        else:
-            self.current += 1
-
-        while self.current_hand.is_blackjack(): self.current += 1
-
-        self.refresh_embed()
-        self.refresh_buttons()
-        await self.message.edit(embed=self.embed, view=self.view)
+        await self.final_checks(ctx)
 
     async def on_double(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
-        self.stats["money"] -= self.bet
+        self.ctx = ctx
+        self.stats.money -= self.bet
 
         self.current_hand.append(self.deck.draw())
         self.current_hand.doubled = True
 
         if self.current_hand.busted:
             if self.player.__len__() == 1:
-                return await self.on_busted()
+                return await self.on_busted(ctx)
 
+        await self.final_checks(ctx)
+
+    async def final_checks(self, ctx: Interaction) -> None:
         if self.player.__len__() == self.current + 1:
-            return await self.run_dealer()
+            return await self.run_dealer(ctx)
         else:
             self.current += 1
 
@@ -247,11 +236,11 @@ class BlackjackGame(BruhCasinoGame):
 
         self.refresh_embed()
         self.refresh_buttons()
-        await self.message.edit(embed=self.embed, view=self.view)
+        await self.update_message(ctx, embed=self.embed, view=self.view)
 
     async def on_split(self, ctx: Interaction) -> None:
-        await ctx.response.defer()
-        self.stats["money"] -= self.bet
+        self.ctx = ctx
+        self.stats.money -= self.bet
 
         self.player.insert(self.current + 1, BlackjackHand(self.current_hand.draw()))
         self.current_hand.append(self.deck.draw())
@@ -259,4 +248,4 @@ class BlackjackGame(BruhCasinoGame):
 
         self.refresh_embed()
         self.refresh_buttons()
-        await self.message.edit(embed=self.embed, view=self.view)
+        await self.update_message(ctx, embed=self.embed, view=self.view)
