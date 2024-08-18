@@ -4,6 +4,8 @@ from bc_common import BruhCasinoEmbed
 from modules.checks import is_developer
 from bc_common.BruhCasinoCog import BruhCasinoCog
 
+
+# noinspection PyUnresolvedReferences
 @app_commands.guild_only()
 class Administration(BruhCasinoCog):
 
@@ -30,5 +32,6 @@ class Administration(BruhCasinoCog):
                 color=Color.green()
             ), ephemeral=True
         )
+
 
 setup = Administration.setup

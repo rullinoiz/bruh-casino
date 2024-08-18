@@ -2,22 +2,22 @@ import discord
 from discord import Interaction, app_commands
 from discord.ext import commands
 from discord.app_commands import Choice
-
 from bc_common import BruhCasinoEmbed
 from modules.server import server
 from modules.checks import is_developer
 from bc_common.BruhCasinoCog import BruhCasinoCog
 from bot_config import bot_config as bcfg
-
-import typing
+from typing import AnyStr
 
 sv_data = bcfg["server_data_desc"]
 
+
+# noinspection PyUnresolvedReferences
 class Configuration(BruhCasinoCog):
     config = app_commands.Group(name="config", description="we do a little configuration")
 
     @staticmethod
-    def _to_bool(t: typing.AnyStr) -> bool | None:
+    def _to_bool(t: AnyStr) -> bool | None:
         print(t)
         try:
             return bool(int(t))
@@ -53,7 +53,8 @@ class Configuration(BruhCasinoCog):
 
         await ctx.response.send_message(embed=BruhCasinoEmbed(
             title=f"Bot Configuration: {key}",
-            description=f"`{sv_data[key]['type']}`: {sv_data[key]['desc']}\n\nCurrently set to: `{server.read(ctx.guild.id, key)}`"
+            description=f"`{sv_data[key]['type']}`: {sv_data[key]['desc']}\n\n"
+                        f"Currently set to: `{server.read(ctx.guild.id, key)}`"
         ))
 
     @config.command(name="options")
@@ -61,22 +62,21 @@ class Configuration(BruhCasinoCog):
         """we do a little checking configuration options"""
         await ctx.response.send_message(embed=BruhCasinoEmbed(
             title="Bot Configuration",
-            description='\n'.join(
+            description="\n".join(
                 ["- **{0}** (`{1}`): {2}".format(i, sv_data[i]["type"], sv_data[i]["desc"]) for i in
-                 server.columns]) + f'\n\nRun `/config set [option] [value]` to configure this bot for this server',
+                 server.columns]) + f"\n\nRun `/config set [option] [value]` to configure this bot for this server",
             color=discord.Color.orange()
         ))
            
     @_config_set.autocomplete("key")
     @_config_get.autocomplete("key")
-    async def config_autocomplete_key(self, _: Interaction, current: str) -> list[Choice]:
+    async def config_autocomplete_key(self, _: Interaction, current: str) -> list[Choice[str]]:
         data: list[Choice] = []
-        #if current == "": return [Choice(name=p, value=p) for p in sv_data.keys()]
+        # if current == "": return [Choice(name=p, value=p) for p in sv_data.keys()]
         for i in sv_data.keys():
             if current in i:
                 data.append(Choice(name=i, value=i))
         return data
-
 
 
 setup = Configuration.setup

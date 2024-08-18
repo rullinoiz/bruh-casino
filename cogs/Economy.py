@@ -1,6 +1,6 @@
 import discord
 import time
-from discord import Interaction, app_commands
+from discord import Interaction, app_commands, User
 from discord.ext import commands
 from discord.app_commands import Transform
 from modules.user import user_instance
@@ -10,10 +10,13 @@ from modules.exceptions import RateError, Uhhhhhh
 from modules.transformers import Money
 from typing import Optional
 
+
 class SingularityError(BruhCasinoError):
     def __init__(self) -> None:
         super().__init__("I appreciate the donation, but the devil doesn't take tips", codestyle=False)
 
+
+# noinspection PyUnresolvedReferences
 class Economy(BruhCasinoCog):
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -24,9 +27,10 @@ class Economy(BruhCasinoCog):
         )
         self.bot.tree.add_command(self.profile_ctx_menu)
 
-    async def profile_ctx_menu_impl(self, ctx: Interaction, user: discord.Member) -> None:
-        t = userdata.read(user,("money","lvl","bruh","wins","loss","moneygained","moneylost"))
-        (money,level,bruhs,wins,loss,moneygained,moneylost) = t
+    # noinspection PyMethodMayBeStatic
+    async def profile_ctx_menu_impl(self, ctx: Interaction, user: User) -> None:
+        t = userdata.read(user, ("money", "lvl", "bruh", "wins", "loss", "moneygained", "moneylost"))
+        (money, level, bruhs, wins, loss, moneygained, moneylost) = t
 
         description = f"""{user.mention}\'s profile:
         Money: {money}
@@ -64,7 +68,7 @@ class Economy(BruhCasinoCog):
     @app_commands.command(name="level")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def level(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def level(self, ctx: Interaction, user: Optional[User]) -> None:
         """check your level"""
         stats: user_instance = user_instance(ctx)
 
@@ -88,7 +92,7 @@ class Economy(BruhCasinoCog):
     @app_commands.command(name="balance")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def balance(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def balance(self, ctx: Interaction, user: Optional[User]) -> None:
         """like a true capitalist"""
         stats: user_instance = user_instance(ctx)
 
@@ -108,7 +112,7 @@ class Economy(BruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.max_concurrency(1, commands.BucketType.guild)
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def pay(self, ctx: Interaction, user: discord.Member, amount: Transform[int, Money]) -> None:
+    async def pay(self, ctx: Interaction, user: User, amount: Transform[int, Money]) -> None:
         stats: user_instance = user_instance(ctx)
         if user == ctx.user: raise Uhhhhhh()
         if user == self.bot.user: raise SingularityError()
@@ -128,10 +132,11 @@ class Economy(BruhCasinoCog):
     @app_commands.command()
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def bruh(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def bruh(self, ctx: Interaction, user: Optional[User]) -> None:
         """how many bruhs"""
         stats: user_instance = user_instance(ctx)
         bruhs: int = stats.bruh if not user else userdata.read(user, "bruh")
         await ctx.response.send_message(f"{bruhs} bruhs have been had")
+
 
 setup = Economy.setup

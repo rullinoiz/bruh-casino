@@ -1,21 +1,17 @@
 import asyncio
-
 import discord
-from discord.ext import commands
-from discord import app_commands, Interaction
-import typing
 import inspect
 import os
-
-from modules.user.user_sqlite import user as userdata
-from modules.checks import is_developer
-from bc_common.BruhCasinoCog import BruhCasinoCog
-
-from bot_config import bot_config as bcfg
-
 import subprocess as subp
+from discord import app_commands, Interaction, User
+from discord.app_commands import Choice
+from discord.ext.commands import Context
+from modules.checks import is_developer
+from modules.user.user_sqlite import user as userdata
+from bc_common import BruhCasinoCog, BruhCasinoEmbed
 
 
+# noinspection PyUnresolvedReferences
 class Debugging(BruhCasinoCog):
 
     debug = app_commands.Group(name="debug", description="debugging stuff")
@@ -29,16 +25,15 @@ class Debugging(BruhCasinoCog):
     
     @debug.command(name="setmoney")
     @is_developer()
-    async def money(self, ctx: Interaction, user: discord.Member, money: int) -> None:
+    async def money(self, ctx: Interaction, user: User, money: int) -> None:
         """conterfeit money"""
-        footer: str = bcfg['footer']
 
-        userdata.write(user,"money", money)
-        await ctx.response.send_message(embed=discord.Embed(
+        userdata.write(user, "money", money)
+        await ctx.response.send_message(embed=BruhCasinoEmbed(
                 title="Success",
-                description="Money for user {0} has been successfully set to {1}.".format(str(user.mention),money),
+                description="Money for user {0} has been successfully set to {1}.".format(str(user.mention), money),
                 color=discord.Color.green()
-            ).set_footer(text=footer)
+            )
         )
 
     @debug.command(name="reload")
@@ -55,26 +50,26 @@ class Debugging(BruhCasinoCog):
         await ctx.followup.send("done", ephemeral=True)
 
     @reload.autocomplete("cog")
-    async def reload_autocomplete(self, ctx: Interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    async def reload_autocomplete(self, ctx: Interaction, current: str) -> list[Choice[str]]:
         self.UNUSED(ctx)
         data = []
-        for filename in os.listdir('cogs'):
-            if filename.endswith('.py'):
+        for filename in os.listdir("cogs"):
+            if filename.endswith(".py"):
                 if current.lower() in filename[:-3].lower():
-                    data.append(app_commands.Choice(name=filename[:-3],value='cogs.'+filename[:-3]))
+                    data.append(app_commands.Choice(name=filename[:-3], value="cogs."+filename[:-3]))
         return data
 
     @debug.command(name="status")
     @is_developer()
-    async def status(self, ctx:commands.Context) -> None:
-        ip = subp.run(['ip','addr','show','eth0'], stdout=subp.PIPE, text=True).stdout
-        free = subp.run(['free'], stdout=subp.PIPE, text=True).stdout
+    async def status(self, ctx: Context) -> None:
+        ip = subp.run(["ip", "addr", "show", "eth0"], stdout=subp.PIPE, text=True).stdout
+        free = subp.run(["free"], stdout=subp.PIPE, text=True).stdout
 
-        await ctx.response.send_message(f'result of `ip addr show eth0`:```{ip}```result of `free`:```{free}```')
+        await ctx.response.send_message(f"result of `ip addr show eth0`:```{ip}```result of `free`:```{free}```")
 
     @debug.command(name="sql")
     @is_developer("do that shit")
-    async def sql(self, ctx: Interaction, *, prg: str) -> None:
+    async def sql(self, ctx: Interaction, prg: str) -> None:
         """we do a little sql injection"""
         try:
             result = userdata.c.execute(str(prg))
@@ -85,16 +80,16 @@ class Debugging(BruhCasinoCog):
                 return
             await ctx.response.send_message(result, ephemeral=True)
         except Exception as e:
-            await ctx.response.send_message(embed=discord.Embed(
-                    title='awkward....',
-                    description=f'sql returned an error: ```{type(e).__name__}: {str(e)}```',
+            await ctx.response.send_message(embed=BruhCasinoEmbed(
+                    title="awkward....",
+                    description=f"sql returned an error: ```{type(e).__name__}: {str(e)}```",
                     color=discord.Color.red()
-                ).set_footer(text=bcfg['footer'])
+                )
             )
     
     @debug.command(name="refresh")
     @is_developer()
-    async def refresh(self, ctx: commands.Context) -> None:
+    async def refresh(self, ctx: Context) -> None:
         await ctx.response.defer(ephemeral=True)
         self.bot.tree.copy_global_to(guild=ctx.guild)
         await self.bot.tree.sync(guild=ctx.guild)
@@ -102,16 +97,16 @@ class Debugging(BruhCasinoCog):
 
     @debug.command(name="refreshall")
     @is_developer()
-    async def refreshall(self, ctx: commands.Context) -> None:
+    async def refreshall(self, ctx: Context) -> None:
         await ctx.response.defer(ephemeral=True)
         async for i in self.bot.fetch_guilds():
             self.bot.tree.copy_global_to(guild=i)
             await self.bot.tree.sync(guild=i)
-        await ctx.followup.send(content='done', ephemeral=True)
+        await ctx.followup.send(content="done", ephemeral=True)
 
     @debug.command(name="clearall")
     @is_developer()
-    async def clearall(self, ctx: commands.Context) -> None:
+    async def clearall(self, ctx: Context) -> None:
         await ctx.response.defer(ephemeral=True)
         async for i in self.bot.fetch_guilds():
             self.bot.tree.clear_commands(guild=i)
@@ -120,27 +115,27 @@ class Debugging(BruhCasinoCog):
 
     @debug.command(name="sync")
     @is_developer()
-    async def sync(self, ctx: commands.Context) -> None:
+    async def sync(self, ctx: Context) -> None:
         await ctx.response.defer(ephemeral=True)
         await self.bot.tree.sync()
-        await ctx.followup.send(content='done', ephemeral=True)
+        await ctx.followup.send(content="done", ephemeral=True)
 
     @app_commands.command(name="changelog")
     async def git(self, ctx: Interaction) -> None:
-        proc = await asyncio.create_subprocess_shell(
-            'git --no-pager log --pretty=oneline --abbrev-commit --graph --decorate --all',
+        proc: asyncio.subprocess.Process = await asyncio.create_subprocess_shell(
+            "git --no-pager log --pretty=oneline --abbrev-commit --graph --decorate --all",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout,stderr = await proc.communicate()
+        stdout, stderr = await proc.communicate()
 
-        stdout = str(stdout)[2:-1].split('\\n')
-        stdout = '\n'.join(stdout[:min(15,len(stdout))])
+        stdout = str(stdout)[2:-1].split("\\n")
+        stdout = '\n'.join(stdout[:min(15, len(stdout))])
 
-        await ctx.response.send_message(embed=discord.Embed(
-                title='Changelog',
-                description='Changelog for this bot (topmost is latest, last 15 commits shown)\n' + stdout
-            ).set_footer(text=bcfg['footer'])
+        await ctx.response.send_message(embed=BruhCasinoEmbed(
+                title="Changelog",
+                description="Changelog for this bot (topmost is latest, last 15 commits shown)\n" + stdout
+            )
         )
 
     @debug.command()
@@ -151,6 +146,7 @@ class Debugging(BruhCasinoCog):
 
         message = await ctx.fetch_message(message)
         await message.delete()
-        await ctx.followup.send('done', ephemeral=True)
+        await ctx.followup.send("done", ephemeral=True)
+
 
 setup = Debugging.setup
