@@ -156,7 +156,7 @@ class Client(commands.Bot):
                 if author.exp >= (author.lvl * expincrement) + expstart:
                     userdata.c.execute(
                         "update user set exp = exp - (lvl * ?) + ?, lvl = lvl + 1, money = money + (lvl * 10) where id = ?",
-                        (expincrement, expstart, author.id))
+                        (expincrement, expstart, author.id.__int__()))
                     print("level up")
                     if server.read(channel.guild.id, 'levelup_announce'):
                         await channel.send(
