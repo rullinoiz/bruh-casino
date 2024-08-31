@@ -3,7 +3,7 @@ import asyncio
 import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.app_commands import ContextMenu
+from discord.app_commands import ContextMenu, AppCommandContext, AppInstallationType
 import time
 import random
 from typing import Optional
@@ -93,7 +93,9 @@ class Fun(BruhCasinoCog):
         super().__init__(bot)
         self.to_gif_ctx_menu: ContextMenu = ContextMenu(
             name="Convert Image to GIF",
-            callback=self.to_gif_ctx_menu_impl
+            callback=self.to_gif_ctx_menu_impl,
+            allowed_contexts=AppCommandContext(guild=True, dm_channel=True, private_channel=True),
+            allowed_installs=AppInstallationType(guild=True, user=True)
         )
         self.bot.tree.add_command(self.to_gif_ctx_menu)
         self.sniped: dict = {}
@@ -141,14 +143,13 @@ class Fun(BruhCasinoCog):
         ctx.sniped = None
         if not isinstance(ctx.channel, discord.DMChannel):
             ctx.sniped = self.get_sniped(ctx.guild.id, ctx)
-        ctx.stats = user_instance(ctx)
 
     @commands.Cog.listener()
     async def on_message_delete(self, msg: discord.Message) -> None:
         if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or msg.author.bot: return
         self.set_sniped(msg)
-        if server.read(msg.guild.id, 'i_saw_what_you_deleted'):
-            await msg.channel.send('https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007')
+        if server.read(msg.guild.id, "i_saw_what_you_deleted"):
+            await msg.channel.send("https://tenor.com/view/i-saw-what-you-deleted-cat-gif-25407007")
 
         msgafter: list[discord.Message] = [i async for i in msg.channel.history(limit=1, after=msg)]
         for i in msgafter:
@@ -158,19 +159,19 @@ class Fun(BruhCasinoCog):
 
     @commands.Cog.listener()
     async def on_message(self, msg: discord.Message) -> None:
-        if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or bcfg['prefix'] in msg.content:
+        if msg.author == self.bot.user or msg.is_system() or isinstance(msg.channel, discord.DMChannel) or bcfg["prefix"] in msg.content:
             return
-        if (not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, 'speech_bubble') and random.randint(1,100) == 69) or self.nexttroll.get(msg.channel.id, False):
+        if (not (msg.is_system() or msg.author.bot) and server.read(msg.guild.id, "speech_bubble") and random.randint(1,100) == 69) or self.nexttroll.get(msg.channel.id, False):
             await msg.channel.send(content=random.choice(bubble_gifs))
             print('trolled')
             if self.nexttroll.get(msg.channel.id): del self.nexttroll[msg.channel.id]
         else:
             for i in gif_reply.keys():
                 if i.lower() in msg.content.lower():
-                    await (msg.reply if (False if type(gif_reply[i]) is str else gif_reply[i]['replytome']) else msg.channel.send)(content=gif_reply[i] if type(gif_reply[i]) is str else gif_reply[i]['content'])
+                    await (msg.reply if (False if type(gif_reply[i]) is str else gif_reply[i]["replytome"]) else msg.channel.send)(content=gif_reply[i] if type(gif_reply[i]) is str else gif_reply[i]["content"])
 
-            if server.read(msg.guild.id, 'lowtiergod') and self.lowtiergod(msg):
-                await msg.reply('https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561')
+            if server.read(msg.guild.id, "lowtiergod") and self.lowtiergod(msg):
+                await msg.reply("https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561")
 
         # print([i.to_dict() for i in msg.embeds])
         # print([i.url for i in msg.attachments])
@@ -179,29 +180,30 @@ class Fun(BruhCasinoCog):
     @commands.guild_only()
     async def troll(self, ctx: Interaction) -> None:
         f"""epicly troll next messager in this channel for {(price := 200)} money"""
+        stats: user_instance = user_instance(ctx)
 
-        if ctx.stats.money < price:
-            raise BrokeError(price, ctx.stats.money)
+        if stats.money < price:
+            raise BrokeError(price, stats.money)
         if self.nexttroll.get(ctx.channel.id):
             raise TrollAlreadyArmed()
 
-        ctx.stats.money -= price
-        self.nexttroll[ctx.channel.id] = ctx.author.id
+        stats.money -= price
+        self.nexttroll[ctx.channel.id] = ctx.user.id
 
         await ctx.response.send_message('troll now armed', ephemeral=True)
-        print(f'troll armed in channel {ctx.channel} by {ctx.author}')
+        print(f'troll armed in channel {ctx.channel} by {ctx.user}')
 
     @app_commands.command()
     @commands.guild_only()
     async def snipe(self, ctx: Interaction) -> None:
-        if msg := ctx.sniped:
+        if msg := self.get_sniped(ctx.guild.id, ctx):
             embed = discord.Embed(
                 description=msg.content
             ).set_author(name=msg.author.name,icon_url=msg.author.display_avatar.url).set_footer(text=bcfg['footer'])
         else:
             raise SnipeFailed()
         
-        await ctx.send(embed=embed,delete_after=None if msg else 7)
+        await ctx.response.send_message(embed=embed, delete_after=None if msg else 7)
 
     @app_commands.command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)

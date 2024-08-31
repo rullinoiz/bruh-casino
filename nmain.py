@@ -74,7 +74,8 @@ class Client(commands.Bot):
         codestyle: bool = getattr(e, "codestyle", True)
         if isinstance(e, CommandNotFound):
             description = "```As of 8/15/2024, you should use the slash-command equivalent of whatever you're trying to run\n\nMore information: [GitHub](https://github.com/rullinoiz/bruh-casino/commit/a084ae07ed52eb4b190a60e93184f50b287a9bfa)```"
-        description = f"```{str(e)}```"
+        else:
+            description = f"```{str(e)}```"
         if not codestyle: description = description[3:-3]
         func: Callable
 
@@ -158,7 +159,7 @@ class Client(commands.Bot):
                         "update user set exp = exp - (lvl * ?) + ?, lvl = lvl + 1, money = money + (lvl * 10) where id = ?",
                         (expincrement, expstart, author.id.__int__()))
                     print("level up")
-                    if server.read(channel.guild.id, 'levelup_announce'):
+                    if server.read(channel.guild.id, "levelup_announce"):
                         await channel.send(
                             embed=BruhCasinoEmbed(
                                 title="Level Up!",

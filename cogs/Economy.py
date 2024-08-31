@@ -64,7 +64,7 @@ class Economy(BruhCasinoCog):
     @app_commands.command(name="level")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def level(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def level(self, ctx: Interaction, user: Optional[discord.User]) -> None:
         """check your level"""
         stats: user_instance = user_instance(ctx)
 
@@ -88,7 +88,7 @@ class Economy(BruhCasinoCog):
     @app_commands.command(name="balance")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def balance(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def balance(self, ctx: Interaction, user: Optional[discord.User]) -> None:
         """like a true capitalist"""
         stats: user_instance = user_instance(ctx)
 
@@ -108,7 +108,7 @@ class Economy(BruhCasinoCog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @commands.max_concurrency(1, commands.BucketType.guild)
     @commands.cooldown(1, 3, commands.BucketType.user)
-    async def pay(self, ctx: Interaction, user: discord.Member, amount: Transform[int, Money]) -> None:
+    async def pay(self, ctx: Interaction, user: discord.User, amount: Transform[int, Money]) -> None:
         stats: user_instance = user_instance(ctx)
         if user == ctx.user: raise Uhhhhhh()
         if user == self.bot.user: raise SingularityError()
@@ -128,7 +128,7 @@ class Economy(BruhCasinoCog):
     @app_commands.command()
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def bruh(self, ctx: Interaction, user: Optional[discord.Member]) -> None:
+    async def bruh(self, ctx: Interaction, user: Optional[discord.User]) -> None:
         """how many bruhs"""
         stats: user_instance = user_instance(ctx)
         bruhs: int = stats.bruh if not user else userdata.read(user, "bruh")
