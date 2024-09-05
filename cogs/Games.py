@@ -313,6 +313,7 @@ class Games(EconomyBruhCasinoCog):
         self.double_games[ctx.user.id] = await DoubleOrNothingGame.create(self, ctx, bet, timeout=20)
 
     @commands.hybrid_command(name='videopoker')
+    @checks.under_construction()
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
     async def videopoker(self, ctx: commands.Context, bet: checks.Money) -> None:
         """yahtzee for stoners"""

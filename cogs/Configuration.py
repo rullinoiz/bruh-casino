@@ -1,11 +1,10 @@
 import discord
 from discord import Interaction, app_commands
-from discord.ext import commands
 from discord.app_commands import Choice
 
 from bc_common import BruhCasinoEmbed
 from modules.server import server
-from modules.checks import is_developer
+from modules.checks import is_developer, is_developer_slash_command, is_developer_predicate
 from bc_common.BruhCasinoCog import BruhCasinoCog
 from bot_config import bot_config as bcfg
 
@@ -25,7 +24,7 @@ class Configuration(BruhCasinoCog):
             return True if 'true' in t.lower() else False if 'false' in t.lower() else None
 
     @config.command(name="set")
-    @commands.check_any(commands.has_permissions(manage_guild=True), is_developer())
+    @app_commands.default_permissions(manage_guild=True)
     async def _config_set(self, ctx: Interaction, key: str, val: str) -> None:
         """we do a little configuration"""
         if key not in sv_data:
@@ -47,6 +46,7 @@ class Configuration(BruhCasinoCog):
         await ctx.response.send_message(f"successfully set `{key}` to `{val}`")
 
     @config.command(name="get")
+    @app_commands.default_permissions(manage_guild=True)
     async def _config_get(self, ctx: Interaction, key: str) -> None:
         if key not in sv_data:
             self._config_options.invoke(ctx)
@@ -57,6 +57,7 @@ class Configuration(BruhCasinoCog):
         ))
 
     @config.command(name="options")
+    @app_commands.default_permissions(manage_guild=True)
     async def _config_options(self, ctx: Interaction) -> None:
         """we do a little checking configuration options"""
         await ctx.response.send_message(embed=BruhCasinoEmbed(
@@ -76,7 +77,6 @@ class Configuration(BruhCasinoCog):
             if current in i:
                 data.append(Choice(name=i, value=i))
         return data
-
 
 
 setup = Configuration.setup

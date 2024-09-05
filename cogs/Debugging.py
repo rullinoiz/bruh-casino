@@ -8,7 +8,7 @@ import inspect
 import os
 
 from modules.user.user_sqlite import user as userdata
-from modules.checks import is_developer
+from modules.checks import is_developer, is_developer_slash_command
 from bc_common.BruhCasinoCog import BruhCasinoCog
 
 from bot_config import bot_config as bcfg
@@ -21,14 +21,14 @@ class Debugging(BruhCasinoCog):
     debug = app_commands.Group(name="debug", description="debugging stuff")
 
     @debug.command()
-    @is_developer()
+    @is_developer_slash_command()
     async def exit(self, ctx: Interaction) -> None:
         """kill bot"""
         await ctx.response.send_message("adios")
         await self.bot.close()
     
     @debug.command(name="setmoney")
-    @is_developer()
+    @is_developer_slash_command()
     async def money(self, ctx: Interaction, user: discord.Member, money: int) -> None:
         """conterfeit money"""
         footer: str = bcfg['footer']
@@ -42,7 +42,7 @@ class Debugging(BruhCasinoCog):
         )
 
     @debug.command(name="reload")
-    @is_developer()
+    @is_developer_slash_command()
     async def reload(self, ctx: Interaction, cog: str) -> None:
         """reloads a command module"""
         await ctx.response.defer(ephemeral=True)
@@ -65,7 +65,7 @@ class Debugging(BruhCasinoCog):
         return data
 
     @debug.command(name="status")
-    @is_developer()
+    @is_developer_slash_command()
     async def status(self, ctx:commands.Context) -> None:
         ip = subp.run(['ip','addr','show','eth0'], stdout=subp.PIPE, text=True).stdout
         free = subp.run(['free'], stdout=subp.PIPE, text=True).stdout
@@ -73,7 +73,7 @@ class Debugging(BruhCasinoCog):
         await ctx.response.send_message(f'result of `ip addr show eth0`:```{ip}```result of `free`:```{free}```')
 
     @debug.command(name="sql")
-    @is_developer("do that shit")
+    @is_developer_slash_command("do that shit")
     async def sql(self, ctx: Interaction, *, prg: str) -> None:
         """we do a little sql injection"""
         try:
@@ -93,7 +93,7 @@ class Debugging(BruhCasinoCog):
             )
     
     @debug.command(name="refresh")
-    @is_developer()
+    @is_developer_slash_command()
     async def refresh(self, ctx: commands.Context) -> None:
         await ctx.response.defer(ephemeral=True)
         self.bot.tree.copy_global_to(guild=ctx.guild)
@@ -101,7 +101,7 @@ class Debugging(BruhCasinoCog):
         await ctx.followup.send("done")
 
     @debug.command(name="refreshall")
-    @is_developer()
+    @is_developer_slash_command()
     async def refreshall(self, ctx: commands.Context) -> None:
         await ctx.response.defer(ephemeral=True)
         async for i in self.bot.fetch_guilds():
@@ -110,7 +110,7 @@ class Debugging(BruhCasinoCog):
         await ctx.followup.send(content='done', ephemeral=True)
 
     @debug.command(name="clearall")
-    @is_developer()
+    @is_developer_slash_command()
     async def clearall(self, ctx: commands.Context) -> None:
         await ctx.response.defer(ephemeral=True)
         async for i in self.bot.fetch_guilds():
@@ -119,7 +119,7 @@ class Debugging(BruhCasinoCog):
         await ctx.followup.send("done", ephemeral=True)
 
     @debug.command(name="sync")
-    @is_developer()
+    @is_developer_slash_command()
     async def sync(self, ctx: commands.Context) -> None:
         await ctx.response.defer(ephemeral=True)
         await self.bot.tree.sync()
@@ -144,7 +144,7 @@ class Debugging(BruhCasinoCog):
         )
 
     @debug.command()
-    @is_developer()
+    @is_developer_slash_command()
     async def deletemsg(self, ctx: Interaction, message: int) -> None:
         """delete bot's messages (developer purposes only)"""
         await ctx.response.defer(ephemeral=True)

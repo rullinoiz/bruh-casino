@@ -15,7 +15,7 @@ from discord.ext.commands.context import Context
 from bot_config import bot_config as bcfg
 from modules.server import server
 from modules.user.user_instance import user_instance
-from modules.checks import under_construction
+from modules.checks import under_construction, is_developer_slash_command
 from modules.exceptions import BrokeError
 from bc_common.BruhCasinoError import BruhCasinoError
 from bc_common.BruhCasinoCog import BruhCasinoCog
@@ -135,7 +135,7 @@ class Fun(BruhCasinoCog):
     @staticmethod
     def lowtiergod(msg: discord.Message) -> bool:
         return any(
-            i in msg.content.lower() for i in ['genshin impact', 'league of legends', 'valorant', 'hunie pop', 'huniepop']
+            i in msg.content.lower() for i in ["genshin impact", "league of legends", "valorant", "hunie pop", "huniepop", "overwatch", "honkai"]
         )
 
     async def cog_before_invoke(self, ctx: Interaction) -> None:
@@ -177,7 +177,7 @@ class Fun(BruhCasinoCog):
         # print([i.url for i in msg.attachments])
 
     @app_commands.command()
-    @commands.guild_only()
+    @app_commands.guild_only()
     async def troll(self, ctx: Interaction) -> None:
         f"""epicly troll next messager in this channel for {(price := 200)} money"""
         stats: user_instance = user_instance(ctx)
@@ -194,7 +194,7 @@ class Fun(BruhCasinoCog):
         print(f'troll armed in channel {ctx.channel} by {ctx.user}')
 
     @app_commands.command()
-    @commands.guild_only()
+    @app_commands.guild_only()
     async def snipe(self, ctx: Interaction) -> None:
         if msg := self.get_sniped(ctx.guild.id, ctx):
             embed = discord.Embed(
@@ -206,6 +206,7 @@ class Fun(BruhCasinoCog):
         await ctx.response.send_message(embed=embed, delete_after=None if msg else 7)
 
     @app_commands.command()
+    @is_developer_slash_command()
     @commands.max_concurrency(1, per=commands.BucketType.channel, wait=False)
     async def attorney(
             self,
