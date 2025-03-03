@@ -4,6 +4,7 @@ botlogs.txt
 **/._*
 user.db
 serverdata.txt
+serverdata.db
 **/__pycache__/
 *.swp
 **/'
