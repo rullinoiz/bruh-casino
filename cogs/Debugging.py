@@ -7,6 +7,7 @@ import typing
 import inspect
 import os
 
+from modules.exceptions import AccessDenied
 from modules.user.user_sqlite import user as userdata
 from modules.checks import is_developer, is_developer_slash_command
 from bc_common.BruhCasinoCog import BruhCasinoCog
@@ -76,6 +77,7 @@ class Debugging(BruhCasinoCog):
     @is_developer_slash_command("do that shit")
     async def sql(self, ctx: Interaction, *, prg: str) -> None:
         """we do a little sql injection"""
+        if "drop" in prg.lower(): raise AccessDenied()
         try:
             result = userdata.c.execute(str(prg))
             result = result.fetchall()
