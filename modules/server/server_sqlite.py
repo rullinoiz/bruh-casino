@@ -19,13 +19,13 @@ class server(object):
         "speech_bubble" INTEGER DEFAULT 1,
         "lingering_levelup" INTEGER DEFAULT 1,
         "i_saw_what_you_deleted" INTEGER DEFAULT 1,
-        "lowtiergod" INTEGER DEFAULT 1);
+        "lowtiergod" INTEGER DEFAULT 1,
+        "levelup_announce" INTEGER DEFAULT 1
+        );
         """)
         cls.s.commit()
         cls.columns = [x[0] for x in cls.c.execute("SELECT name FROM pragma_table_info(\"server\")").fetchall()]
         cls.columns.remove("id")
-
-
 
     @classmethod
     def ensure_existence(cls, serverid: Union[int, Guild], add_new: bool = False) -> bool:
